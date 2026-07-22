@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Reviewer Console · Dr. Debra Canapp</title>
+<meta name="robots" content="noindex, nofollow" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="styles.css" />
+<link rel="stylesheet" href="portal.css" />
+<link rel="stylesheet" href="reviewer.css" />
+</head>
+<body data-screen-label="Reviewer Console">
+  <div id="root"></div>
+
+  <!-- React -->
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+  <!-- DICOM viewer stack (admin-side only) -->
+  <script src="https://unpkg.com/hammerjs@2.0.8/hammer.min.js"></script>
+  <script src="https://unpkg.com/dicom-parser@1.8.21/dist/dicomParser.min.js"></script>
+  <script src="https://unpkg.com/cornerstone-core@2.6.1/dist/cornerstone.min.js"></script>
+  <script src="https://unpkg.com/cornerstone-math@0.1.10/dist/cornerstoneMath.min.js"></script>
+  <script src="https://unpkg.com/cornerstone-tools@6.0.10/dist/cornerstoneTools.min.js"></script>
+  <script src="https://unpkg.com/cornerstone-wado-image-loader@4.13.0/dist/cornerstoneWADOImageLoader.bundle.min.js"></script>
+  <script src="https://unpkg.com/cornerstone-web-image-loader@2.1.1/dist/cornerstoneWebImageLoader.min.js"></script>
+
+  <!-- Init cornerstone wiring -->
+  <script>
+    (function initCornerstone() {
+      if (typeof cornerstone === 'undefined') {
+        console.error('[reviewer] cornerstone not loaded');
+        return;
+      }
+      cornerstoneTools.external.cornerstone = cornerstone;
+      cornerstoneTools.external.cornerstoneMath = cornerstoneMath;
+      cornerstoneTools.external.Hammer = Hammer;
+      cornerstoneTools.init({ showSVGCursors: true });
+
+      cornerstoneWADOImageLoader.external.cornerstone = cornerstone;
+      cornerstoneWADOImageLoader.external.dicomParser = dicomParser;
+
+      const WADO_VER = '4.13.0';
+      const workerSrc = `https://unpkg.com/cornerstone-wado-image-loader@${WADO_VER}/dist/cornerstoneWADOImageLoaderWebWorker.min.js`;
+      const codecsSrc = `https://unpkg.com/cornerstone-wado-image-loader@${WADO_VER}/dist/cornerstoneWADOImageLoaderCodecs.min.js`;
+      const workerWrapper = `self.importScripts('${workerSrc}');`;
+      const workerBlobUrl = URL.createObjectURL(new Blob([workerWrapper], { type: 'application/javascript' }));
+
+      cornerstoneWADOImageLoader.webWorkerManager.initialize({
+        maxWebWorkers: Math.max(1, (navigator.hardwareConcurrency || 2) - 1),
+        startWebWorkersOnDemand: true,
+        webWorkerPath: workerBlobUrl,
+        taskConfiguration: {
+          decodeTask: {
+            initializeCodecsOnStartup: false,
+            strict: false,
+            codecsPath: codecsSrc,
+            usePDFJS: false,
+          },
+        },
+      });
+
+      cornerstoneWADOImageLoader.configure({
+        useWebWorkers: true,
+        decodeConfig: { convertFloatPixelDataToInt: false },
+      });
+
+      cornerstoneWebImageLoader.external.cornerstone = cornerstone;
+
+      // Register loaders for the custom schemes the viewer builds for
+      // non-DICOM radiographs (JPEG/PNG). Without these, opening such a file
+      // throws "no image loader for imageId" synchronously and blanks the page.
+      // This Image-element loader is reliable for blob: URLs (no XHR).
+      (function () {
+        function blobImageLoader(imageId) {
+          const url = imageId.replace(/^(jpegimage|pngimage):/, '');
+          const promise = new Promise(function (resolve, reject) {
+            const img = new Image();
+            img.onload = function () {
+              const canvas = document.createElement('canvas');
+              canvas.width = img.naturalWidth; canvas.height = img.naturalHeight;
+              const ctx = canvas.getContext('2d');
+              ctx.drawImage(img, 0, 0);
+              resolve({
+                imageId: imageId, minPixelValue: 0, maxPixelValue: 255, slope: 1, intercept: 0,
+                windowCenter: 128, windowWidth: 256, color: true,
+                rows: canvas.height, columns: canvas.width, height: canvas.height, width: canvas.width,
+                columnPixelSpacing: undefined, rowPixelSpacing: undefined, invert: false,
+                sizeInBytes: canvas.width * canvas.height * 4,
+                getCanvas: function () { return canvas; },
+                getPixelData: function () { return ctx.getImageData(0, 0, canvas.width, canvas.height).data; },
+              });
+            };
+            img.onerror = function () { reject(new Error('Could not decode image (' + (url.split(':')[0]) + ').')); };
+            img.src = url;
+          });
+          return { promise: promise };
+        }
+        cornerstone.registerImageLoader('jpegimage', blobImageLoader);
+        cornerstone.registerImageLoader('pngimage', blobImageLoader);
+      })();
+
+      window.__cornerstone_ready = true;
+      console.log('[reviewer] cornerstone ready');
+    })();
+  </script>
+
+  <!-- Config + Supabase SDK (no-op if config.js is empty) -->
+  <script src="config.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.0/dist/umd/supabase.min.js"></script>
+
+  <!-- App -->
+  <script type="text/babel" src="portal-storage.jsx"></script>
+  <script type="text/babel" src="portal-dicom-meta.jsx"></script>
+  <script type="text/babel" src="portal-supabase.jsx"></script>
+  <script type="text/babel" src="billing.jsx"></script>
+  <script type="text/babel" src="portal-views.jsx"></script>
+  <script type="text/babel" src="portal-viewer.jsx"></script>
+  <script type="text/babel" src="reviewer-case.jsx"></script>
+  <script type="text/babel" src="reviewer-applications.jsx"></script>
+  <script type="text/babel" src="reviewer-vets.jsx"></script>
+  <script type="text/babel" src="reviewer-app.jsx"></script>
+</body>
+</html>
