@@ -118,7 +118,7 @@ function LoginView({ onLogin, onApply }) {
   return (
     <div className="auth-shell">
       <aside className="auth-aside">
-        <a href="index.html" className="brand">
+        <a href="https://drdebracanapp.com" className="brand">
           <img src="assets/logo-mark.png" alt="" />
           <span>
             <div className="nm" style={{color:'var(--paper)'}}>Dr. Debra Canapp</div>
@@ -164,7 +164,7 @@ function LoginView({ onLogin, onApply }) {
           <div className="auth-alt">
             Need access? <a href="#" onClick={(e) => { e.preventDefault(); onApply(); }}>Apply for an account</a>
             <br /><br />
-            <a href="index.html" style={{color:'var(--ink-3)', borderBottom:'none', fontSize:12, letterSpacing:'0.16em', textTransform:'uppercase'}}>← Back to drdebracanapp.com</a>
+            <a href="https://drdebracanapp.com" style={{color:'var(--ink-3)', borderBottom:'none', fontSize:12, letterSpacing:'0.16em', textTransform:'uppercase'}}>← Back to drdebracanapp.com</a>
           </div>
         </div>
       </main>
@@ -190,7 +190,7 @@ function ApplyView({ onBack }) {
     return (
       <div className="auth-shell">
         <aside className="auth-aside">
-          <a href="index.html" className="brand">
+          <a href="https://drdebracanapp.com" className="brand">
             <img src="assets/logo-mark.png" alt="" />
             <span><div className="nm" style={{color:'var(--paper)'}}>Dr. Debra Canapp</div><div className="sub">Referral Portal</div></span>
           </a>
@@ -214,7 +214,7 @@ function ApplyView({ onBack }) {
   return (
     <div className="auth-shell">
       <aside className="auth-aside">
-        <a href="index.html" className="brand">
+        <a href="https://drdebracanapp.com" className="brand">
           <img src="assets/logo-mark.png" alt="" />
           <span><div className="nm" style={{color:'var(--paper)'}}>Dr. Debra Canapp</div><div className="sub">Referral Portal</div></span>
         </a>

@@ -149,7 +149,7 @@ function AdminLogin({ onLogin }) {
         </form>
 
         <div className="adm-foot">
-          <a href="portal.html">← Are you a referring veterinarian? Use the public portal</a>
+          <a href="index.html">← Are you a referring veterinarian? Use the public portal</a>
         </div>
       </div>
     </div>
@@ -206,7 +206,7 @@ function ReviewerBar({ session, logout, view, unread, onInbox, onApps, onVets })
   return (
     <header className="rv-bar">
       <div className="rv-bar-inner">
-        <a href="index.html" className="rv-brand" title="Public site">
+        <a href="https://drdebracanapp.com" className="rv-brand" title="Public site">
           <img src="assets/logo-mark.png" alt="" />
           <div>
             <div className="rv-brand-name">Reviewer Console</div>

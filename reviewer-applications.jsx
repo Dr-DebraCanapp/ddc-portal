@@ -209,7 +209,7 @@ function ApproveModal({ app, onClose, onConfirm }) {
         <p className="rv-modal-body">
           {window.PORTAL_BACKEND === 'supabase'
             ? <>This marks the application as approved and generates a temporary password. You'll then create the actual user in <strong>Supabase Dashboard</strong> with these credentials (a one-minute step).</>
-            : <>This creates a portal account for <strong>{app.email}</strong> and generates a temporary password. The vet will be able to sign in immediately at <code>portal.html</code>.</>
+            : <>This creates a portal account for <strong>{app.email}</strong> and generates a temporary password. The vet will be able to sign in immediately at <code>portal.drdebracanapp.com</code>.</>
           }
         </p>
         <div className="rv-modal-field">
