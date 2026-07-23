@@ -77,7 +77,7 @@
     return el.textContent.trim().length > 0;
   }
   function skipEl(el) {
-    return SKIP.has(el.tagName) || el.closest('[data-no-i18n]') || el.closest('.ddc-lang') || el.closest('[data-mt-en2vet],[data-mt-vet2en]');
+    return SKIP.has(el.tagName) || el.closest('[data-no-i18n]') || el.closest('.ddc-lang');
   }
 
   function collect(root) {
@@ -104,7 +104,6 @@
         const p = t.parentElement;
         if (!p || skipEl(p)) return NodeFilter.FILTER_REJECT;
         if (p.closest('[data-i18n]')) return NodeFilter.FILTER_REJECT;
-        if (p.closest('[data-mt-en2vet],[data-mt-vet2en]')) return NodeFilter.FILTER_REJECT;
         // inside a leaf unit? its innerHTML is handled as a unit
         let a = p;
         while (a) { if (a.nodeType === 1 && (UNIT.has(a.tagName)) && isLeafUnit(a)) return NodeFilter.FILTER_REJECT; a = a.parentElement; }
@@ -196,8 +195,6 @@
     document.documentElement.dir = RTL.has(lang) ? 'rtl' : 'ltr';
     persist(lang);
     document.querySelectorAll('.ddc-lang select').forEach((s) => { if (s.value !== lang) s.value = lang; });
-    // let the dynamic-content translator (translate.jsx) re-run for the new language
-    try { document.dispatchEvent(new CustomEvent('ddc:langchange', { detail: { lang } })); } catch (e) {}
     loadLang(lang).then(() => apply());
   }
   window.setLanguage = setLang;
@@ -251,7 +248,17 @@
 .ddc-lang-float{position:fixed;right:16px;bottom:16px;z-index:9999;background:#fff;border-radius:999px;box-shadow:0 4px 18px rgba(0,0,0,.18)}
 .ddc-lang-float select{border-color:rgba(0,0,0,.15)}
 .mnav-foot .ddc-lang{order:-1;margin-bottom:4px}
-.mnav-foot .ddc-lang select{color:var(--paper,#f4efe5);border-color:rgba(244,239,229,.32);font-size:14px;padding:10px 30px 10px 14px}`;
+.mnav-foot .ddc-lang select{color:var(--paper,#f4efe5);border-color:rgba(244,239,229,.32);font-size:14px;padding:10px 30px 10px 14px}
+.ddc-langsug{position:fixed;left:50%;bottom:22px;transform:translateX(-50%) translateY(8px);z-index:10000;display:flex;align-items:center;gap:14px;max-width:calc(100vw - 32px);background:#fff;color:#1a1a1a;border:1px solid rgba(0,0,0,.08);border-radius:14px;box-shadow:0 10px 40px rgba(0,0,0,.22);padding:14px 16px;font-size:14px;line-height:1.4;opacity:0;transition:opacity .3s,transform .3s}
+.ddc-langsug.in{opacity:1;transform:translateX(-50%) translateY(0)}
+.ddc-langsug p{margin:0;max-width:340px}
+.ddc-langsug .ls-actions{display:flex;gap:8px;flex-shrink:0}
+.ddc-langsug button{font:inherit;font-size:13px;cursor:pointer;border-radius:999px;padding:8px 14px;border:1px solid transparent;white-space:nowrap}
+.ddc-langsug .ls-yes{background:#1a1a1a;color:#fff}
+.ddc-langsug .ls-yes:hover{background:#333}
+.ddc-langsug .ls-no{background:transparent;color:#666;border-color:rgba(0,0,0,.15)}
+.ddc-langsug .ls-no:hover{color:#1a1a1a}
+@media(max-width:560px){.ddc-langsug{flex-direction:column;align-items:stretch;text-align:center}.ddc-langsug .ls-actions{justify-content:center}}`;
     document.head.appendChild(s);
   }
 
@@ -268,6 +275,65 @@
     state.observing = true;
   }
 
+  // ---- native-language suggestion (based on browser/region locale) --------
+  // "Ask me" text for each language, so the prompt itself is already localized.
+  const SUGGEST = {
+    es: 'Este sitio est\u00e1 disponible en espa\u00f1ol. \u00bfCambiar de idioma?',
+    fr: 'Ce site est disponible en fran\u00e7ais. Changer de langue\u202f?',
+    de: 'Diese Website ist auf Deutsch verf\u00fcgbar. Sprache wechseln?',
+    it: 'Questo sito \u00e8 disponibile in italiano. Cambiare lingua?',
+    pt: 'Este site est\u00e1 dispon\u00edvel em portugu\u00eas. Mudar de idioma?',
+    zh: '\u672c\u7f51\u7ad9\u63d0\u4f9b\u4e2d\u6587\u7248\u672c\u3002\u662f\u5426\u5207\u6362\uff1f',
+    ja: '\u3053\u306e\u30b5\u30a4\u30c8\u306f\u65e5\u672c\u8a9e\u3067\u3054\u5229\u7528\u3044\u305f\u3060\u3051\u307e\u3059\u3002\u8a00\u8a9e\u3092\u5207\u308a\u66ff\u3048\u307e\u3059\u304b\uff1f',
+    ko: '\uc774 \uc0ac\uc774\ud2b8\ub294 \ud55c\uad6d\uc5b4\ub85c \uc81c\uacf5\ub429\ub2c8\ub2e4. \uc5b8\uc5b4\ub97c \ubcc0\uacbd\ud560\uae4c\uc694?',
+  };
+  const YES = { es:'Cambiar', fr:'Changer', de:'Wechseln', it:'Cambia', pt:'Mudar', zh:'\u5207\u6362', ja:'\u5207\u308a\u66ff\u3048\u308b', ko:'\ubcc0\uacbd' };
+  const NO = { es:'No, gracias', fr:'Non merci', de:'Nein danke', it:'No, grazie', pt:'N\u00e3o, obrigado', zh:'\u4e0d\u7528\u4e86', ja:'\u7d50\u69cb\u3067\u3059', ko:'\uc544\ub2c8\uc694' };
+
+  function detectLang() {
+    const list = (navigator.languages && navigator.languages.length) ? navigator.languages : [navigator.language || ''];
+    for (const raw of list) {
+      const code = (raw || '').toLowerCase().split('-')[0];
+      if (code === 'zh') return 'zh';
+      if (LANGS[code]) return code;
+    }
+    return null;
+  }
+
+  function maybeSuggest() {
+    // only if the visitor hasn't already chosen a language, and their locale
+    // maps to one we support that isn't the current one
+    if (saved()) return;
+    let dismissed = false;
+    try { dismissed = localStorage.getItem('ddc_lang_suggest_dismissed') === '1'; } catch (e) {}
+    if (dismissed) return;
+    const guess = detectLang();
+    if (!guess || guess === state.lang) return;
+
+    const bar = document.createElement('div');
+    bar.className = 'ddc-langsug';
+    bar.setAttribute('data-no-i18n', '');
+    bar.setAttribute('role', 'dialog');
+    bar.setAttribute('aria-label', SUGGEST[guess]);
+    const p = document.createElement('p');
+    p.textContent = SUGGEST[guess];
+    const actions = document.createElement('div');
+    actions.className = 'ls-actions';
+    const yes = document.createElement('button');
+    yes.className = 'ls-yes';
+    yes.textContent = YES[guess] || 'Switch';
+    const no = document.createElement('button');
+    no.className = 'ls-no';
+    no.textContent = NO[guess] || 'No thanks';
+    const close = () => { bar.classList.remove('in'); setTimeout(() => bar.remove(), 300); };
+    yes.addEventListener('click', () => { setLang(guess); close(); });
+    no.addEventListener('click', () => { try { localStorage.setItem('ddc_lang_suggest_dismissed', '1'); } catch (e) {} close(); });
+    actions.appendChild(yes); actions.appendChild(no);
+    bar.appendChild(p); bar.appendChild(actions);
+    document.body.appendChild(bar);
+    requestAnimationFrame(() => bar.classList.add('in'));
+  }
+
   // ---- boot ---------------------------------------------------------------
   function boot() {
     state.lang = LANGS[saved()] ? saved() : 'en';
@@ -276,6 +342,7 @@
     document.documentElement.dir = RTL.has(state.lang) ? 'rtl' : 'ltr';
     if (state.lang !== 'en') loadLang(state.lang).then(() => apply());
     observe();
+    setTimeout(maybeSuggest, 900);
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
   else boot();

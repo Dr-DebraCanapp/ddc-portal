@@ -773,3 +773,21 @@ registerI18n('de', {
   "your inbox": "Ihren Posteingang",
   ". Once approved, your login credentials will arrive in a follow-up email.": ". Nach der Genehmigung erhalten Sie Ihre Anmeldedaten in einer weiteren E-Mail.",
 });
+registerI18n('de', {
+  "Elbow": "Ellbogen",
+  "Carpus": "Karpus",
+  "Carpi": "Karpalgelenke",
+  "Tarsus": "Tarsus",
+  "Tarsi": "Sprunggelenke",
+  "Hock": "Sprunggelenk",
+  "Hocks": "Sprunggelenke",
+  "Shoulder OCD": "Schulter-OCD",
+  "Medial compartment": "Mediales Kompartiment",
+  "Hyperextension": "Hyperextension",
+  "Strain": "Zerrung",
+  "Enthesopathy": "Enthesopathie",
+  "Biceps": "Bizeps",
+  "Common calcaneal (Achilles)": "Gemeinsame Kalkaneussehne (Achilles)",
+  "Common calcanean": "Gemeinsame Kalkaneussehne",
+  "Achilles / Common calcanean": "Achilles / Gemeinsame Kalkaneussehne",
+});

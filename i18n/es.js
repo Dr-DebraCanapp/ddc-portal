@@ -784,3 +784,21 @@ registerI18n('es', {
   "your inbox": "tu bandeja de entrada",
   ". Once approved, your login credentials will arrive in a follow-up email.": ". Una vez aprobada, tus credenciales de acceso llegarán en un correo posterior.",
 });
+registerI18n('es', {
+  "Elbow": "Codo",
+  "Carpus": "Carpo",
+  "Carpi": "Carpos",
+  "Tarsus": "Tarso",
+  "Tarsi": "Tarsos",
+  "Hock": "Corvejón",
+  "Hocks": "Corvejones",
+  "Shoulder OCD": "OCD de hombro",
+  "Medial compartment": "Compartimento medial",
+  "Hyperextension": "Hiperextensión",
+  "Strain": "Distensión",
+  "Enthesopathy": "Entesopatía",
+  "Biceps": "Bíceps",
+  "Common calcaneal (Achilles)": "Calcáneo común (Aquiles)",
+  "Common calcanean": "Calcáneo común",
+  "Achilles / Common calcanean": "Aquíleo / Calcáneo común",
+});

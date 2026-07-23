@@ -773,3 +773,21 @@ registerI18n('zh', {
   "your inbox": "您的收件箱",
   ". Once approved, your login credentials will arrive in a follow-up email.": "。获批后，您的登录凭据将通过后续邮件发送。",
 });
+registerI18n('zh', {
+  "Elbow": "肘关节",
+  "Carpus": "腕关节",
+  "Carpi": "腕关节",
+  "Tarsus": "跗关节",
+  "Tarsi": "跗关节",
+  "Hock": "飞节（跗关节）",
+  "Hocks": "飞节（跗关节）",
+  "Shoulder OCD": "肩关节 OCD",
+  "Medial compartment": "内侧间室",
+  "Hyperextension": "过度伸展",
+  "Strain": "拉伤",
+  "Enthesopathy": "附着点病",
+  "Biceps": "肱二头肌",
+  "Common calcaneal (Achilles)": "总跟腱（跟腱）",
+  "Common calcanean": "总跟腱",
+  "Achilles / Common calcanean": "跟腱 / 总跟腱",
+});

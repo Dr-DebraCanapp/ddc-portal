@@ -773,3 +773,21 @@ registerI18n('fr', {
   "your inbox": "votre boîte de réception",
   ". Once approved, your login credentials will arrive in a follow-up email.": ". Une fois approuvée, vos identifiants de connexion arriveront dans un e-mail ultérieur.",
 });
+registerI18n('fr', {
+  "Elbow": "Coude",
+  "Carpus": "Carpe",
+  "Carpi": "Carpes",
+  "Tarsus": "Tarse",
+  "Tarsi": "Tarses",
+  "Hock": "Jarret",
+  "Hocks": "Jarrets",
+  "Shoulder OCD": "OCD de l'épaule",
+  "Medial compartment": "Compartiment médial",
+  "Hyperextension": "Hyperextension",
+  "Strain": "Élongation",
+  "Enthesopathy": "Enthésopathie",
+  "Biceps": "Biceps",
+  "Common calcaneal (Achilles)": "Calcanéen commun (Achille)",
+  "Common calcanean": "Calcanéen commun",
+  "Achilles / Common calcanean": "Achille / Calcanéen commun",
+});
