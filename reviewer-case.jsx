@@ -113,7 +113,7 @@ function CaseReviewView({ id, onBack, session }) {
       </div>
 
       <div className="rv-comments-wrap">
-        <window.CommentThread caseId={c.id} role="reviewer" name={(session && session.name) || 'Dr. Canapp'} />
+        <window.CommentThread caseId={c.id} role="reviewer" name={(session && session.name) || 'Dr. Canapp'} srcLang={c.lang} />
       </div>
 
       {viewerState && (
@@ -207,7 +207,7 @@ function ClinicalBlock({ c }) {
     <div className="rv-clinical">
       <div>
         <div className="rv-section-eyebrow">Presenting complaint</div>
-        <p className="rv-clinical-text rv-clinical-lead">{c.complaint}</p>
+        <p className="rv-clinical-text rv-clinical-lead" data-mt-vet2en data-mt-lang={c.lang}>{c.complaint}</p>
         {c.duration && <div className="rv-clinical-meta">Duration: {c.duration}</div>}
       </div>
       {c.sites && c.sites.length > 0 && (
@@ -221,7 +221,7 @@ function ClinicalBlock({ c }) {
       {c.examFindings && (
         <div>
           <div className="rv-section-eyebrow">Exam findings</div>
-          <p className="rv-clinical-text">{c.examFindings}</p>
+          <p className="rv-clinical-text" data-mt-vet2en data-mt-lang={c.lang}>{c.examFindings}</p>
         </div>
       )}
       {c.medications && (
@@ -233,7 +233,7 @@ function ClinicalBlock({ c }) {
       {c.priorImaging && (
         <div>
           <div className="rv-section-eyebrow">History notes</div>
-          <p className="rv-clinical-text">{c.priorImaging}</p>
+          <p className="rv-clinical-text" data-mt-vet2en data-mt-lang={c.lang}>{c.priorImaging}</p>
         </div>
       )}
     </div>

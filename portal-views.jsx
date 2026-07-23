@@ -515,7 +515,7 @@ function UnreadBadge({ n, label }) {
   );
 }
 
-function CommentThread({ caseId, role, name, locked }) {
+function CommentThread({ caseId, role, name, locked, srcLang }) {
   const [comments, setComments] = pUseState([]);
   const [draft, setDraft] = pUseState('');
   const [sending, setSending] = pUseState(false);
@@ -567,16 +567,26 @@ function CommentThread({ caseId, role, name, locked }) {
         {loaded && comments.length === 0 && (
           <div className="ct-empty">No messages yet. {role === 'vet' ? 'Start the conversation below.' : 'Awaiting questions from the referring veterinarian.'}</div>
         )}
-        {comments.map(c => (
+        {comments.map(c => {
+          // Cross-role messages get machine-translated for the reader:
+          //  vet reading Dr. Canapp (English) -> vet language;
+          //  Dr. Canapp reading the vet -> English (from the case's language).
+          let mt = null;
+          if (c.role !== role) {
+            if (role === 'vet') mt = { 'data-mt-en2vet': '' };
+            else if (role === 'reviewer') mt = { 'data-mt-vet2en': '', 'data-mt-lang': srcLang || 'en' };
+          }
+          return (
           <div key={c.id} className={`ct-msg ${c.role === role ? 'mine' : 'theirs'} ${c.role === 'reviewer' ? 'is-reviewer' : 'is-vet'}`}>
             <div className="ct-msg-head">
               <span className="ct-author">{c.name}</span>
               <span className="ct-role">{c.role === 'reviewer' ? 'Dr. Canapp · Reviewer' : 'Referring vet'}</span>
               <span className="ct-time">{relTime(c.ts)}</span>
             </div>
-            <div className="ct-bubble">{c.text}</div>
+            <div className="ct-bubble" {...(mt || {})}>{c.text}</div>
           </div>
-        ))}
+          );
+        })}
       </div>
 
       <div className="ct-compose">

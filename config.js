@@ -13,6 +13,15 @@ window.PORTAL_CONFIG = {
     anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd1eXBhYmJvdnl6cnprdHVmb2R0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMzQ0NDIsImV4cCI6MjA5NTkxMDQ0Mn0.GjD7hCHFIjRUMtX3jqu_sAOQxNJT26JL03Kyk6bzaqU',
   },
 
+  // Dynamic-content translation (reports, invoices, comments, case history).
+  // Flip enabled:true AFTER deploying the `translate` Edge Function with a
+  // GOOGLE_TRANSLATE_KEY secret. Off = everything shows its original language
+  // (nothing breaks). The referring-vet side translates both ways; Dr. Canapp's
+  // reviewer console stays English. See TRANSLATE-SETUP.md.
+  translate: {
+    enabled: false,
+  },
+
   // Cloudflare Turnstile — spam protection on the PUBLIC forms
   // (vet application + hospital visit request). Paste the SITE key from
   // Cloudflare → Turnstile here. The SECRET key goes in the Supabase Edge

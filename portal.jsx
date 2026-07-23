@@ -145,6 +145,7 @@ function NewCaseView({ session, onSubmit, onCancel }) {
         referringVet: session.name,
         referringClinic: session.clinic,
         referringEmail: session.email,
+        lang: (window.ddcVetLang && window.ddcVetLang()) || 'en',
         submitted: new Date().toISOString(),
         status: 'submitted',
         seeded: false,
@@ -500,6 +501,12 @@ function CaseDetailView({ id, onBack, session }) {
       draft: !c.report.finalized,
     }));
     w.document.close();
+    // Deliver the report in the vet's language (leaves English untouched otherwise).
+    const vet = window.ddcVetLang ? window.ddcVetLang() : 'en';
+    if (window.ddcTranslateDoc && vet && vet !== 'en') {
+      w.addEventListener('load', () => window.ddcTranslateDoc(w.document, vet, 'en'));
+      window.ddcTranslateDoc(w.document, vet, 'en');
+    }
   };
   const viewInvoice = () => {
     if (!c.invoice) return;
@@ -507,6 +514,10 @@ function CaseDetailView({ id, onBack, session }) {
     if (!w) return;
     w.document.write(window.buildInvoiceHTML(c, c.invoice));
     w.document.close();
+    const vet = window.ddcVetLang ? window.ddcVetLang() : 'en';
+    if (window.ddcTranslateDoc && vet && vet !== 'en') {
+      window.ddcTranslateDoc(w.document, vet, 'en');
+    }
   };
 
   return (
@@ -639,7 +650,7 @@ function CaseDetailView({ id, onBack, session }) {
               </div>
               <div className="pi-lines">
                 {(c.invoice.lines || []).map((l, i) => (
-                  <div key={i} className="pi-line"><span>{l.site || l.label}</span><span>{window.money(l.amount)}</span></div>
+                  <div key={i} className="pi-line"><span data-mt-en2vet>{l.site || l.label}</span><span>{window.money(l.amount)}</span></div>
                 ))}
                 <div className="pi-line total"><span>Total</span><span>{window.money(c.invoice.total)}</span></div>
               </div>

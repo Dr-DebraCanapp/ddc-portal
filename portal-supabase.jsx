@@ -81,6 +81,7 @@
       report: r.report || null,
       sites: r.sites || [],
       invoice: r.invoice || null,
+      lang: r.lang || 'en',
     };
   }
   function caseToRow(c) {
@@ -109,6 +110,7 @@
       report: c.report || null,
       sites: c.sites || [],
       invoice: c.invoice || null,
+      lang: c.lang || 'en',
       updated_at: new Date().toISOString(),
     };
   }
