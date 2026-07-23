@@ -45,6 +45,10 @@
   const origAttr = new WeakMap();  // element -> {attr: originalValue}
   // strip editor-injected binding attributes so keys match the source markup
   const norm = (s) => s.replace(/\s*data-(?:om-id|cc-id|dm-ref|comment-anchor)="[^"]*"/g, '');
+  // A string is translatable only if it contains an actual letter. Pure numbers,
+  // currency, and symbols ("121", "$250 – $7,975", "90+") are never translated —
+  // this also stops the engine from fighting the count-up number animations.
+  const hasLetters = (s) => /\p{L}/u.test(s || '');
 
   function getCookie(n) {
     return document.cookie.split('; ').reduce((a, c) => {
@@ -74,7 +78,7 @@
     for (const d of el.getElementsByTagName('*')) {
       if (UNIT.has(d.tagName)) return false;
     }
-    return el.textContent.trim().length > 0;
+    return hasLetters(el.textContent) && el.textContent.trim().length > 0;
   }
   function skipEl(el) {
     return SKIP.has(el.tagName) || el.closest('[data-no-i18n]') || el.closest('.ddc-lang');
@@ -101,6 +105,7 @@
     const tw = document.createTreeWalker(root === document ? document.body : root, NodeFilter.SHOW_TEXT, {
       acceptNode(t) {
         if (!t.nodeValue.trim()) return NodeFilter.FILTER_REJECT;
+        if (!hasLetters(t.nodeValue)) return NodeFilter.FILTER_REJECT;
         const p = t.parentElement;
         if (!p || skipEl(p)) return NodeFilter.FILTER_REJECT;
         if (p.closest('[data-i18n]')) return NodeFilter.FILTER_REJECT;
