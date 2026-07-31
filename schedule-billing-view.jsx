@@ -79,7 +79,7 @@ function SbRow({ e, on, onOpen }) {
   );
 }
 
-function BillingView({ entities, accounts, on, onOpenEntity }) {
+function BillingView({ entities, accounts, on, onOpenEntity, onEditRates }) {
   const [filter, setFilter] = useState('open');
   const [kind, setKind] = useState('');
   const [acctId, setAcctId] = useState('');
@@ -157,18 +157,20 @@ function BillingView({ entities, accounts, on, onOpenEntity }) {
       )}
 
       <div className="sb-ratecard">
-        <div className="h">Rate card · one price list, both applications</div>
-        <div className="rows">
-          <div><span>In-person diagnostic MSK ultrasound</span><b>$1,200</b></div>
-          <div><span>US-guided / intra-articular injection — up to 4 sites</span><b>$1,200</b></div>
-          <div><span>Each additional injection site (US or IA)</span><b>$300</b></div>
-          <div><span>Remote read — initial, per bilateral site</span><b>$350</b></div>
-          <div><span>Remote read — recheck within 6 months, per site</span><b>$300</b></div>
-          <div><span>Remote read — non-student, per site</span><b>$500</b></div>
-          <div><span>Remote read — unreadable study return fee</span><b>$100</b></div>
-          <div><span>STAT read — 24-hour guaranteed turnaround</span><b>$250</b></div>
+        <div className="rc-head">
+          <div className="h">Rate card · one price list, both applications</div>
+          {onEditRates && <button className="btn btn-ghost btn-sm" onClick={onEditRates}>Change prices</button>}
         </div>
-        <div className="n">No tax. In-person work is one hospital per day, batched onto a single invoice. Remote reads are batched into a monthly statement per practice. Invoice numbers run in one sequence per account (DDC-BOW-2607-01). Terms Net {BV().TERMS_DAYS} unless an account is set otherwise.<br /><br /><b>STAT reads:</b> {BV().STAT_DISCLAIMER}</div>
+        <div className="rows">
+          {(window.SchedRates ? window.SchedRates.ROWS : []).map(r => (
+            <div key={r.id}><span>{r.label}{r.id === 'injection' ? ` — up to ${BV().INJECTION_INCLUDED} sites` : ''}{/remote_(initial|recheck|nonstudent)/.test(r.id) ? ', per bilateral site' : ''}</span><b>{BS().money(BV().RATES[r.id].amount)}</b></div>
+          ))}
+        </div>
+        <div className="n">
+          No tax. In-person work is one hospital per day, batched onto a single invoice. Remote reads are batched into a monthly statement per practice. Invoice numbers run in one sequence per account (DDC-BOW-2607-01). Terms Net {BV().TERMS_DAYS} unless an account is set otherwise.
+          {window.SchedRates && window.SchedRates.current().effectiveFrom && <React.Fragment><br /><br />These prices are in force from {new Date(window.SchedRates.current().effectiveFrom + 'T12:00').toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })}{window.SchedRates.current().note ? ' — ' + window.SchedRates.current().note : ''}. Work invoiced before then keeps its original price.</React.Fragment>}
+          <br /><br /><b>STAT reads:</b> {BV().STAT_DISCLAIMER}
+        </div>
       </div>
     </React.Fragment>
   );

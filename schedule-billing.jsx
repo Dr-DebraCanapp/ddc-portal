@@ -41,9 +41,9 @@ const SB_REMOTE_SERVICES = ['remote_initial', 'remote_recheck', 'remote_nonstude
    "STAT READS"), so this must read as a sentence on its own. */
 const SB_STAT_DISCLAIMER = 'A report is guaranteed within 24 hours of our receiving a readable study. The requesting practice must contact us directly so that we can acknowledge the STAT request — submitting a case marked STAT does not on its own start the 24-hour period. Where a study cannot be read, we notify the practice immediately and the STAT fee is not charged.';
 const sbHasStat = (e) => sbLines(e).some(l => l.code === 'rush');
-const SB_INJECTION_INCLUDED = 4;
-const SB_RECHECK_MONTHS = 6;
-const SB_TERMS_DAYS = 15; // Net 15, both applications
+/* Mutable so the rate-card editor can change these without a deploy.
+   The engine reads SB_CFG.* everywhere; never copy these into a const. */
+const SB_CFG = { injectionIncluded: 4, recheckMonths: 6, termsDays: 15 };
 
 const SB_CHARGE_TYPES = [
   { id: 'travel',     label: 'Travel / mileage',            sign: 1,  hint: 'Long-haul or out-of-region visit' },
@@ -82,13 +82,13 @@ function sbPatientLines(p) {
     const n = Math.max(1, Number(p.injections) || (p.sites || []).length || 1);
     lines.push({
       code: 'injection', who: p.name, label: SB_RATES.injection.label,
-      detail: 'includes up to ' + SB_INJECTION_INCLUDED + ' sites · ' + n + ' site' + (n === 1 ? '' : 's') + ' treated',
+      detail: 'includes up to ' + SB_CFG.injectionIncluded + ' sites · ' + n + ' site' + (n === 1 ? '' : 's') + ' treated',
       qty: 1, unit: SB_RATES.injection.amount, amount: SB_RATES.injection.amount,
     });
-    const extra = Math.max(0, n - SB_INJECTION_INCLUDED);
+    const extra = Math.max(0, n - SB_CFG.injectionIncluded);
     if (extra > 0) lines.push({
       code: 'injection_extra', who: p.name, label: SB_RATES.injection_extra.label,
-      detail: 'site ' + (SB_INJECTION_INCLUDED + 1) + (extra > 1 ? '–' + n : ''),
+      detail: 'site ' + (SB_CFG.injectionIncluded + 1) + (extra > 1 ? '–' + n : ''),
       qty: extra, unit: SB_RATES.injection_extra.amount, amount: extra * SB_RATES.injection_extra.amount,
     });
   } else {
@@ -135,10 +135,17 @@ function sbReadLines(r) {
 const sbReadTotal = (r) => sbReadLines(r).reduce((s, l) => s + l.amount, 0);
 
 /* ---- lines for a whole entity ------------------------------ */
-function sbLines(e) {
+function sbLinesRaw(e) {
   if (!e) return [];
   if (e.kind === 'remote') return (e.reads || []).flatMap(sbReadLines);
   return (e.patients || []).flatMap(sbPatientLines);
+}
+/* Price with the rate card that was in force on this entity's own date,
+   so a raise never silently re-prices work already invoiced. */
+function sbLines(e) {
+  const R = window.SchedRates;
+  if (!R || !e || !e.kind) return sbLinesRaw(e);
+  return R.withCardFor(e, () => sbLinesRaw(e));
 }
 
 /* ---- arithmetic -------------------------------------------- */
@@ -161,7 +168,7 @@ const sbAddDays = (dt, n) => { const x = new Date(dt); x.setDate(x.getDate() + n
 function sbTermsFor(e) {
   const a = e && e.account;
   const n = a && Number(a.termsDays);
-  return n > 0 ? n : SB_TERMS_DAYS;
+  return n > 0 ? n : SB_CFG.termsDays;
 }
 function sbDue(e) {
   const inv = e && e.invoice;
@@ -336,7 +343,7 @@ function sbEmailBody(e, attaching) {
     `${remote ? 'Reads' : 'Patients seen'}: ${sbCount(e)}`,
     `${doc.charAt(0).toUpperCase() + doc.slice(1)} total: ${S.money(sbTotal(e))}`,
     `Balance due: ${S.money(sbBalance(e))}`,
-    `Terms: Net ${inv.termsDays || SB_TERMS_DAYS}${due ? ' — due ' + due.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' }) : ''}`,
+    `Terms: Net ${inv.termsDays || SB_CFG.termsDays}${due ? ' — due ' + due.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' }) : ''}`,
     '', 'HOW TO PAY', ...pay.map((l, i) => `${i + 1}. ${l}`),
     ...(sbHasStat(e) ? ['', 'STAT READS', SB_STAT_DISCLAIMER] : []),
     '', 'With thanks,', 'Dr. Debra Canapp, DVM, DACVSMR', 'info@DrDebraCanapp.com',
@@ -369,7 +376,7 @@ window.SchedBill = {
   CHARGE_TYPES: SB_CHARGE_TYPES, charge: SB_CHARGE,
   METHODS: SB_METHODS, method: SB_METHOD, payCfg: sbPayCfg, payLines: sbPayLines,
   chargeSign: SB_CHARGE_SIGN, chargeLabel: SB_CHARGE_LABEL, chargeDetail: SB_CHARGE_DETAIL,
-  INJECTION_INCLUDED: SB_INJECTION_INCLUDED, RECHECK_MONTHS: SB_RECHECK_MONTHS, TERMS_DAYS: SB_TERMS_DAYS,
+  CFG: SB_CFG,
   STATUS_LABEL: SB_STATUS_LABEL, STAT_DISCLAIMER: SB_STAT_DISCLAIMER, hasStat: sbHasStat,
   patientLines: sbPatientLines, patientTotal: sbPatientTotal,
   readLines: sbReadLines, readTotal: sbReadTotal, lines: sbLines,
@@ -381,3 +388,12 @@ window.SchedBill = {
   title: sbTitle, count: sbCount, entityDate: sbEntityDate,
   csv: sbCSV, download: sbDownload, email: sbEmailInvoice, emailBody: sbEmailBody, openDocument: sbOpenDocument,
 };
+
+/* Live views onto the mutable config, so UI code reading
+   SchedBill.INJECTION_INCLUDED / TERMS_DAYS / RECHECK_MONTHS always sees
+   the active rate card rather than a stale copy. */
+Object.defineProperties(window.SchedBill, {
+  INJECTION_INCLUDED: { get: () => SB_CFG.injectionIncluded, enumerable: true },
+  RECHECK_MONTHS: { get: () => SB_CFG.recheckMonths, enumerable: true },
+  TERMS_DAYS: { get: () => SB_CFG.termsDays, enumerable: true },
+});

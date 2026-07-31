@@ -144,6 +144,8 @@ function SchedGate() {
       if (prof.role === 'vet') { setProfile(prof); setPhase('denied'); return; }
       if (prof.role === 'hospital' && !prof.sched_clinic_id) { setProfile(prof); setPhase('denied'); return; }
       const isAdmin = prof.role === 'reviewer' || prof.role === 'admin';
+      // prices first: everything downstream is priced from the active card
+      if (window.SchedRates) { try { await window.SchedRates.load(); } catch (e) { window.SchedRates.setCards([]); } }
       const data = await window.SchedCloud.loadAll(isAdmin);
       // remote reads + saved statements, so Billing covers both applications
       if (isAdmin) {
@@ -507,7 +509,7 @@ function ScheduleApp({ profile, boot }) {
         )}
 
         {tab === 'clinics' && <ClinicsView days={days} role={role} clinicId={clinicId} rev={clinicRev} onEdit={on.editClinic} flash={flash} entities={entities} accounts={accounts} on={on} />}
-        {tab === 'billing' && role === 'admin' && <window.BillingView entities={entities} accounts={accounts} on={on} onOpenEntity={(e) => e.kind === 'inperson' && openDay(e.source || e)} />}
+        {tab === 'billing' && role === 'admin' && <window.BillingView entities={entities} accounts={accounts} on={on} onOpenEntity={(e) => e.kind === 'inperson' && openDay(e.source || e)} onEditRates={() => setModal({ type: 'rates' })} />}
         {tab === 'imaging' && role === 'admin' && <ImagingView incoming={incoming} setIncoming={setIncoming} days={days} flash={flash} oops={oops} />}
       </main>
 
@@ -518,6 +520,7 @@ function ScheduleApp({ profile, boot }) {
       {modal && modal.type === 'publish' && <window.AssignClinicModal day={modal.day} role={role} mode="publish" onAssign={(day, cid) => publishDay(day, cid)} onClose={() => setModal(null)} />}
       {modal && modal.type === 'assign' && <window.AssignClinicModal day={modal.day} role={role} onAssign={(day, cid) => { saveDay(updateDay(day.id, d => ({ ...d, clinic: cid, status: 'booked', reservedFor: null }))); setModal(null); flash('Clinic assigned — roster can now be built.'); }} onClose={() => setModal(null)} />}
       {modal && modal.type === 'patient' && <window.PatientEditorModal day={modal.day} patient={modal.patient} role={role} onSave={savePatient} onClose={() => setModal(null)} />}
+      {modal && modal.type === 'rates' && window.RateCardEditor && <window.RateCardEditor onClose={() => setModal(null)} onSaved={() => { setClinicRev(v => v + 1); flash('Prices updated. Invoices already issued keep the price they were billed at.'); }} />}
       {modal && modal.type === 'payment' && (() => { const en = entities.find(x => x.id === modal.entityId); return en ? <window.PaymentModal entity={en} onSave={(e2, p) => { on.addPayment(e2, p); setModal(null); }} onClose={() => setModal(null)} /> : null; })()}
       {modal && modal.type === 'signoff' && <window.SignoffModal day={modal.day} role={role} onSave={on.saveSignoff} onRemove={on.removeSignoff} onClose={() => setModal(null)} />}
       {modal && modal.type === 'clinic' && <window.ClinicProfileModal clinic={modal.clinic} onSave={on.saveClinic} onClose={() => setModal(null)} />}

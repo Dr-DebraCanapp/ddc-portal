@@ -193,6 +193,29 @@
       check(await sb.from('sched_incoming_studies').update({ route: st.route, status: st.status }).eq('id', st.id), 'Could not route the study');
     },
 
+    /* ---- rate cards (editable prices, versioned by date) ---- */
+    async loadRates() {
+      const res = await sb.from('sched_rates').select('*').order('effective_from', { ascending: true });
+      if (res.error) { if (!/does not exist|schema cache/i.test(res.error.message || '')) console.warn('[sched-cloud] rates:', res.error.message); return []; }
+      return (res.data || []).map(r => ({
+        id: r.id, effectiveFrom: r.effective_from, amounts: r.amounts || {},
+        injectionIncluded: r.injection_included == null ? 4 : r.injection_included,
+        recheckMonths: r.recheck_months == null ? 6 : r.recheck_months,
+        termsDays: r.terms_days == null ? 15 : r.terms_days,
+        note: r.note || '',
+      }));
+    },
+    async saveRates(card) {
+      check(await sb.from('sched_rates').upsert({
+        id: card.id, effective_from: card.effectiveFrom || null, amounts: card.amounts || {},
+        injection_included: card.injectionIncluded, recheck_months: card.recheckMonths,
+        terms_days: card.termsDays, note: card.note || null,
+      }), 'Could not save the rate card');
+    },
+    async deleteRates(id) {
+      check(await sb.from('sched_rates').delete().eq('id', id), 'Could not delete the rate card');
+    },
+
     /* ---- unified billing ---- */
     /* Finalized remote reads, for the monthly statements. */
     async loadBillableCases() {
