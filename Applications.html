@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Visit Requests · Dr. Debra Canapp</title>
+<meta name="robots" content="noindex, nofollow" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="styles.css" />
+<link rel="stylesheet" href="portal.css" />
+<link rel="stylesheet" href="reviewer.css" />
+<style>
+  .ax-note { display: flex; gap: 12px; align-items: flex-start; border: 1px solid var(--rule-2); border-left: 4px solid var(--clay); background: rgba(177,106,72,0.05); padding: 13px 18px; margin: 0 0 24px; font-size: 13px; line-height: 1.55; color: var(--ink-2); }
+  .ax-note .ic { color: var(--clay); font-size: 15px; flex-shrink: 0; }
+  .ax-note strong { color: var(--ink); }
+  .ax-hosp { display: flex; align-items: center; gap: 10px; }
+  .ax-hosp .sw { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
+  .ax-cando { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; letter-spacing: 0.04em; padding: 3px 9px; border: 1px solid var(--rule-2); color: var(--ink-3); }
+  .ax-cando.yes { color: var(--sage, #6B7C5C); border-color: var(--sage, #6B7C5C); }
+  .ax-cando.no { color: var(--clay); border-color: var(--clay); }
+  .ax-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .ax-tag { font-size: 11.5px; padding: 3px 9px; background: var(--cream); border: 1px solid var(--rule-2); color: var(--ink-2); }
+  .ax-cred { background: var(--cream); border: 1px solid var(--rule-2); padding: 14px 16px; margin: 12px 0; font-size: 13px; }
+  .ax-cred .mono { font-family: ui-monospace, monospace; font-size: 13px; color: var(--ink); }
+  .ax-cred .k { font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-3); font-weight: 600; margin-bottom: 2px; }
+</style>
+</head>
+<body data-screen-label="Visit Requests">
+  <div id="root"></div>
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script src="config.js"></script>
+  <script src="schedule-cloud.js"></script>
+  <script type="text/babel" src="prototype-nav.jsx"></script>
+  <script type="text/babel">
+    const { useState, useEffect } = React;
+    const Cloud = window.SchedCloud;
+    const PALETTE = ['#2A6FDB', '#1F8A5B', '#B8862B', '#8B4A9E', '#0E7C8B', '#C24444', '#D9822B', '#4C6EA8', '#6B7C5C', '#A65D9E', '#3C7A6B', '#C77D3A'];
+
+    const slugify = (s) => String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 32) || ('clinic-' + Date.now().toString(36));
+    const tempPassword = () => {
+      const words = ['maple', 'cedar', 'river', 'stone', 'harbor', 'meadow', 'willow', 'aspen'];
+      const w = () => words[Math.floor(Math.random() * words.length)];
+      return w() + '-' + w() + '-' + Math.floor(100 + Math.random() * 900);
+    };
+
+    function reqFromRow(r) {
+      return {
+        id: r.id, hospital: r.hospital, city: r.city || '', state: r.state || '',
+        vet: r.contact || '', role: r.contact_role || '', email: r.email, phone: r.phone || '',
+        estPatients: r.est_patients || '—', caseTypes: r.case_types || [], windows: r.windows || 'Flexible',
+        sedation: !!r.sedation, prefDays: r.pref_days || [], notes: r.notes || '',
+        submittedAt: r.submitted_at, status: r.status, clinicId: r.clinic_id || null,
+      };
+    }
+
+    function Meta({ label, children }) { return <div className="rv-meta-cell"><div className="rv-meta-label">{label}</div><div className="rv-meta-val">{children}</div></div>; }
+
+    function ReqCard({ r, onApprove, onDecline }) {
+      return (
+        <article className={`rv-app-card status-${r.status}`}>
+          <div className="rv-app-main">
+            <div className="rv-app-head">
+              <div className="ax-hosp">
+                <span className="sw" style={{ background: r.color || 'var(--ink-4, #999)' }} />
+                <div><div className="rv-app-name">{r.hospital}</div><div className="rv-app-clinic">{r.city}, {r.state} · {r.vet}</div></div>
+              </div>
+              <div className="rv-app-status"><span className={`status-pill ${r.status === 'pending' ? 'submitted' : r.status === 'approved' ? 'reported' : 'declined'}`}>{r.status === 'pending' ? 'Pending review' : r.status === 'approved' ? 'Active clinic' : 'Declined'}</span></div>
+            </div>
+            <div className="rv-app-meta">
+              <Meta label="Est. patients">{r.estPatients}</Meta>
+              <Meta label="Preferred days">{r.prefDays.length ? r.prefDays.join(' · ') : 'Flexible'}</Meta>
+              <Meta label="Sedation on-site">{r.sedation ? <span className="ax-cando yes">✓ Can sedate</span> : <span className="ax-cando no">Cannot sedate in-house</span>}</Meta>
+              <Meta label="Submitted">{r.submittedAt ? new Date(r.submittedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}</Meta>
+            </div>
+            <div className="rv-app-contact"><a href={`mailto:${r.email}`}>{r.email}</a>{r.phone ? <> · {r.phone}</> : null}</div>
+            <div className="ax-tags">{r.caseTypes.map(t => <span key={t} className="ax-tag">{t}</span>)}</div>
+            {r.notes && <div className="rv-app-why"><div className="rv-section-eyebrow">Notes from the clinic</div><p>{r.notes}</p></div>}
+            {r.status === 'approved' && (
+              <div className="rv-app-approved">
+                <strong>Approved &amp; set up as a hospital account.</strong> Finalize their color, bookable weekdays, and case cap under Schedule → Clinics, then publish an open day for them.
+              </div>
+            )}
+          </div>
+          {r.status === 'pending' && (
+            <div className="rv-app-actions">
+              <button className="btn btn-ghost btn-sm" onClick={onDecline}>Decline</button>
+              <button className="btn btn-clay btn-sm" onClick={onApprove}>Approve &amp; set up hospital <span className="arrow">→</span></button>
+            </div>
+          )}
+        </article>
+      );
+    }
+
+    function ApproveModal({ r, onClose, onDone }) {
+      const [loginEmail, setLoginEmail] = useState(r.email);
+      const [pw, setPw] = useState(tempPassword());
+      const [busy, setBusy] = useState(false);
+      const [err, setErr] = useState('');
+      const [done, setDone] = useState(false);
+      const clinicId = slugify(r.hospital);
+
+      const go = async () => {
+        setBusy(true); setErr('');
+        try {
+          const sb = Cloud.client;
+          // 1) clinic profile (pending — finalized in Schedule → Clinics)
+          const { error: cErr } = await sb.from('sched_clinics').upsert({
+            id: clinicId, name: r.hospital, city: r.city, state: r.state,
+            contact: r.vet, contact_role: r.role || null, email: r.email, phone: r.phone || null,
+            login_email: loginEmail.trim(), status: 'pending',
+            can_sedate: r.sedation, intake_note: r.notes || null,
+            color: PALETTE[Math.floor(Math.random() * PALETTE.length)],
+          });
+          if (cErr) throw new Error(cErr.message);
+          // 2) hospital login (secondary client — keeps your admin session)
+          await Cloud.createHospitalAccount({ email: loginEmail.trim(), password: pw, name: r.vet, clinicId });
+          // 3) mark the request approved
+          const { error: rErr } = await sb.from('sched_visit_requests').update({
+            status: 'approved', clinic_id: clinicId, approved_at: new Date().toISOString(),
+          }).eq('id', r.id);
+          if (rErr) throw new Error(rErr.message);
+          setDone(true); onDone();
+        } catch (ex) { setErr(ex.message || 'Approval failed.'); }
+        setBusy(false);
+      };
+
+      if (done) {
+        return (
+          <div className="rv-modal-shell" onClick={onClose}>
+            <div className="rv-modal" onClick={e => e.stopPropagation()}>
+              <div className="rv-modal-eyebrow">§ Hospital set up</div>
+              <h3 className="rv-modal-h">{r.hospital} is now a hospital account.</h3>
+              <p className="rv-modal-body">Send these sign-in details to <strong>{r.vet}</strong> and ask them to change the password after first sign-in:</p>
+              <div className="ax-cred"><div className="k">Sign-in page</div><div className="mono">Schedule.html (your site's /Schedule)</div></div>
+              <div className="ax-cred"><div className="k">Email</div><div className="mono">{loginEmail}</div></div>
+              <div className="ax-cred"><div className="k">Temporary password</div><div className="mono">{pw}</div></div>
+              <p className="rv-modal-body">Next: finalize their profile (color, bookable weekdays, case cap) under <strong>Schedule → Clinics</strong>, then publish an open day held for them.</p>
+              <div className="rv-modal-actions"><a className="btn btn-clay" href="Schedule.html">Go to Schedule →</a><button className="btn btn-ghost" onClick={onClose}>Done</button></div>
+            </div>
+          </div>
+        );
+      }
+      return (
+        <div className="rv-modal-shell" onClick={onClose}>
+          <div className="rv-modal" onClick={e => e.stopPropagation()}>
+            <div className="rv-modal-eyebrow">§ Approve visit request</div>
+            <h3 className="rv-modal-h">Set up {r.hospital} as a hospital?</h3>
+            <p className="rv-modal-body">This creates a clinic profile (<span className="mono">{clinicId}</span>) and a hospital sign-in for <strong>{r.vet}</strong>. It is separate from the remote-read referral portal.</p>
+            {!r.sedation && <div className="ax-note" style={{ margin: '0 0 14px' }}><span className="ic">◑</span><div>This clinic noted they <strong>cannot sedate in-house</strong>. Iliopsoas scans require sedation — flag this with them before scheduling.</div></div>}
+            <div className="form-row"><label className="form-label">Account email</label><input className="form-input" type="email" value={loginEmail} onChange={e => setLoginEmail(e.target.value)} /></div>
+            <div className="form-row" style={{ marginTop: 10 }}><label className="form-label">Temporary password</label><input className="form-input" value={pw} onChange={e => setPw(e.target.value)} /></div>
+            {err && <div style={{ color: '#c24444', fontSize: 13, marginTop: 12 }}>{err}</div>}
+            <div className="rv-modal-actions"><button className="btn btn-ghost" onClick={onClose}>Cancel</button><button className="btn btn-clay" disabled={busy || !loginEmail.trim() || pw.length < 8} onClick={go}>{busy ? 'Setting up…' : <React.Fragment>Approve &amp; create account <span className="arrow">→</span></React.Fragment>}</button></div>
+          </div>
+        </div>
+      );
+    }
+
+    function MiniSignIn({ onIn }) {
+      const [email, setEmail] = useState(''); const [pw, setPw] = useState('');
+      const [busy, setBusy] = useState(false); const [err, setErr] = useState('');
+      const go = async (e) => { e.preventDefault(); setBusy(true); setErr(''); try { await Cloud.signIn(email.trim(), pw); onIn(); } catch (ex) { setErr(ex.message); setBusy(false); } };
+      return (
+        <main className="rv-main" style={{ maxWidth: 420, paddingTop: '12vh' }}>
+          <div className="rv-head" style={{ textAlign: 'center' }}><div className="rv-eyebrow">Visit requests</div><h2 className="rv-h">Admin sign-in.</h2></div>
+          <form onSubmit={go} style={{ border: '1px solid var(--rule-2, #e6e1d6)', padding: 24 }}>
+            <div className="form-row"><label className="form-label">Email</label><input className="form-input" type="email" required value={email} onChange={e => setEmail(e.target.value)} /></div>
+            <div className="form-row" style={{ marginTop: 10 }}><label className="form-label">Password</label><input className="form-input" type="password" required value={pw} onChange={e => setPw(e.target.value)} /></div>
+            {err && <div style={{ color: '#c24444', fontSize: 13, marginTop: 10 }}>{err}</div>}
+            <button className="btn btn-clay" type="submit" disabled={busy} style={{ width: '100%', marginTop: 16 }}>{busy ? 'Signing in…' : 'Sign in'}</button>
+          </form>
+        </main>
+      );
+    }
+
+    function VisitRequests() {
+      const [phase, setPhase] = useState('boot'); // boot | signin | denied | ready | error
+      const [err, setErr] = useState('');
+      const [reqs, setReqs] = useState([]);
+      const [filter, setFilter] = useState('pending');
+      const [approveModal, setApproveModal] = useState(null);
+
+      const load = async () => {
+        try {
+          const prof = await Cloud.profile();
+          if (!prof) { setPhase('signin'); return; }
+          if (prof.role !== 'reviewer' && prof.role !== 'admin') { setPhase('denied'); return; }
+          const { data, error } = await Cloud.client.from('sched_visit_requests').select('*').order('submitted_at', { ascending: false });
+          if (error) throw new Error(error.message);
+          setReqs(data.map(reqFromRow)); setPhase('ready');
+        } catch (ex) { setErr(ex.message || String(ex)); setPhase('error'); }
+      };
+      useEffect(() => {
+        (async () => {
+          if (!Cloud || !Cloud.configured) { setErr('Supabase is not configured (config.js).'); setPhase('error'); return; }
+          const s = await Cloud.session();
+          if (!s) { setPhase('signin'); return; }
+          load();
+        })();
+      }, []);
+
+      const counts = { pending: reqs.filter(a => a.status === 'pending').length, approved: reqs.filter(a => a.status === 'approved').length, declined: reqs.filter(a => a.status === 'declined').length };
+      const filtered = reqs.filter(a => filter === 'all' ? true : a.status === filter);
+      const decline = async (r) => {
+        if (!confirm(`Decline the visit request from ${r.hospital}?`)) return;
+        setReqs(rs => rs.map(a => a.id === r.id ? { ...a, status: 'declined' } : a));
+        const { error } = await Cloud.client.from('sched_visit_requests').update({ status: 'declined', declined_at: new Date().toISOString() }).eq('id', r.id);
+        if (error) { alert('Could not save the decline: ' + error.message); load(); }
+      };
+
+      if (phase === 'signin') return <div className="rv-page"><MiniSignIn onIn={load} /></div>;
+      if (phase === 'boot') return <div className="rv-page"><main className="rv-main" style={{ paddingTop: '14vh', textAlign: 'center' }}><p className="rv-sub">Loading visit requests…</p></main></div>;
+      if (phase === 'denied') return <div className="rv-page"><main className="rv-main" style={{ paddingTop: '14vh', textAlign: 'center' }}><h2 className="rv-h">Admins only.</h2><p className="rv-sub">This page is for Dr. Canapp's team.</p></main></div>;
+      if (phase === 'error') return <div className="rv-page"><main className="rv-main" style={{ paddingTop: '14vh', textAlign: 'center' }}><h2 className="rv-h">Couldn't load.</h2><p className="rv-sub" style={{ color: '#c24444' }}>{err}</p></main></div>;
+
+      return (
+        <div className="rv-page">
+          <window.PrototypeBar active="apps" who="Allyson Li" role="Admin" />
+          <main className="rv-main rv-apps-main">
+            <div className="rv-head"><div>
+              <div className="rv-eyebrow">Visit requests</div>
+              <h2 className="rv-h">Hospitals asking Dr. Canapp to visit.</h2>
+              <p className="rv-sub">{counts.pending > 0 ? <><strong>{counts.pending}</strong> pending — each is a clinic requesting an in-person MSK ultrasound day at their hospital.</> : <>No visit requests pending.</>}</p>
+            </div></div>
+            <div className="rv-toolbar"><div className="rv-filters">
+              <button className={`rv-filter ${filter === 'pending' ? 'active' : ''}`} onClick={() => setFilter('pending')}>Pending<span className="ct">{counts.pending}</span></button>
+              <button className={`rv-filter ${filter === 'approved' ? 'active' : ''}`} onClick={() => setFilter('approved')}>Active clinics<span className="ct">{counts.approved}</span></button>
+              <button className={`rv-filter ${filter === 'declined' ? 'active' : ''}`} onClick={() => setFilter('declined')}>Declined<span className="ct">{counts.declined}</span></button>
+              <button className={`rv-filter ${filter === 'all' ? 'active' : ''}`} onClick={() => setFilter('all')}>All<span className="ct">{reqs.length}</span></button>
+            </div></div>
+            {filtered.length === 0 ? (
+              <div className="rv-empty"><div className="rv-empty-h">No requests</div><p>{filter === 'pending' ? "You're all caught up. New requests from the intake form land here." : 'Nothing in this category yet.'}</p></div>
+            ) : (
+              <div className="rv-app-list">{filtered.map(r => <ReqCard key={r.id} r={r} onApprove={() => setApproveModal(r)} onDecline={() => decline(r)} />)}</div>
+            )}
+          </main>
+          {approveModal && <ApproveModal r={approveModal} onClose={() => { setApproveModal(null); }} onDone={load} />}
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<VisitRequests />);
+  </script>
+</body>
+</html>

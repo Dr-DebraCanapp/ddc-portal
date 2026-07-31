@@ -115,7 +115,7 @@ function NewCaseView({ session, onSubmit, onCancel }) {
   const [pendingCaseId] = pAppUseState(() => `PENDING-${Date.now()}-${Math.random().toString(36).slice(2,6)}`);
   const [data, setData] = pAppUseState({
     patient: '', species: 'Canine', breed: '', age: '', sex: '', weight: '',
-    complaint: '', duration: '', priorImaging: '', medications: '', examFindings: '',
+    complaint: '', duration: '', priorImaging: '', medications: '', examFindings: '', rush: false,
   });
   const [sites, setSites] = pAppUseState([]);
   const [dicom, setDicom] = pAppUseState([]);
@@ -145,8 +145,9 @@ function NewCaseView({ session, onSubmit, onCancel }) {
         referringVet: session.name,
         referringClinic: session.clinic,
         referringEmail: session.email,
-        lang: (window.ddcVetLang && window.ddcVetLang()) || 'en',
         submitted: new Date().toISOString(),
+        rush: !!data.rush,
+        rushRequestedBy: data.rush ? (session.name || 'referring vet') : '',
         status: 'submitted',
         seeded: false,
         files: { dicom: dicom.length, rads: rads.length, history: docs.length, video: videos.length },
@@ -260,6 +261,14 @@ function NewCaseView({ session, onSubmit, onCancel }) {
                 <label className="form-label">Sites for evaluation<span className="req">*</span></label>
                 <SitesPicker sites={sites} setSites={setSites} />
               </div>
+              <label className="rush-opt">
+                <input type="checkbox" checked={!!data.rush} onChange={e => setData(d => ({ ...d, rush: e.target.checked }))} />
+                <span>
+                  <b>Request a STAT read — additional $250</b>
+                  <br />Prioritised ahead of the standard queue instead of the usual 5–7 days. The fee is added to your invoice as a separate line.
+                  <span className="rush-note"><b>Please read:</b> we guarantee a report <b>within 24 hours</b> of receiving a readable study — but you must <b>contact us directly</b> to confirm we have acknowledged your STAT request. Ticking this box alone does not start the 24-hour clock. Call or email as soon as you submit, and if the study cannot be read we will tell you straight away.</span>
+                </span>
+              </label>
               <div className="step-actions">
                 <span style={{fontSize:12, color:'var(--ink-3)'}}>Step 1 of {STEPS.length}</span>
                 <button onClick={next} className="btn">Continue <span className="arrow">→</span></button>
@@ -396,12 +405,28 @@ const KIND_LABELS = {
 
 function CaseDetailView({ id, onBack, session }) {
   const [c, setC] = pAppUseState(null);
+  const [statements, setStatements] = pAppUseState([]);
   const [files, setFiles] = pAppUseState([]);
   const [kind, setKind] = pAppUseState('dicom');
   const [seededDemo, setSeededDemo] = pAppUseState(false);
   const [adding, setAdding] = pAppUseState(false);
   const [loaded, setLoaded] = pAppUseState(false);
   const addRef = React.useRef(null);
+
+  /* This practice's monthly statements, so the case can show the one it's on. */
+  pAppUseEffect(() => {
+    (async () => {
+      if (!window.pbMine || !window.PortalDB.getAllCases) return;
+      try {
+        const all = await window.PortalDB.getAllCases();
+        let stmts = {};
+        if (window.SchedCloud && window.SchedCloud.configured) {
+          stmts = await window.SchedCloud.loadStatements().catch(() => ({}));
+        }
+        setStatements(window.pbMine(all, session && session.clinic, stmts));
+      } catch (err) { setStatements([]); }
+    })();
+  }, [session]);
 
   pAppUseEffect(() => {
     (async () => {
@@ -501,24 +526,8 @@ function CaseDetailView({ id, onBack, session }) {
       draft: !c.report.finalized,
     }));
     w.document.close();
-    // Deliver the report in the vet's language (leaves English untouched otherwise).
-    const vet = window.ddcVetLang ? window.ddcVetLang() : 'en';
-    if (window.ddcTranslateDoc && vet && vet !== 'en') {
-      w.addEventListener('load', () => window.ddcTranslateDoc(w.document, vet, 'en'));
-      window.ddcTranslateDoc(w.document, vet, 'en');
-    }
   };
-  const viewInvoice = () => {
-    if (!c.invoice) return;
-    const w = window.open('', '_blank', 'width=820,height=1000');
-    if (!w) return;
-    w.document.write(window.buildInvoiceHTML(c, c.invoice));
-    w.document.close();
-    const vet = window.ddcVetLang ? window.ddcVetLang() : 'en';
-    if (window.ddcTranslateDoc && vet && vet !== 'en') {
-      window.ddcTranslateDoc(w.document, vet, 'en');
-    }
-  };
+
 
   return (
     <main className="app-main">
@@ -637,28 +646,7 @@ function CaseDetailView({ id, onBack, session }) {
             </button>
           )}
 
-          {c.invoice && (
-            <div className="portal-invoice">
-              <div className="pi-top">
-                <div>
-                  <div className="pi-eyebrow">Invoice</div>
-                  <div className="pi-num">{c.invoice.number}</div>
-                </div>
-                <span className={`pi-pill ${c.invoice.status === 'paid' ? 'paid' : 'unpaid'}`}>
-                  {c.invoice.status === 'paid' ? '✓ Paid' : 'Due'}
-                </span>
-              </div>
-              <div className="pi-lines">
-                {(c.invoice.lines || []).map((l, i) => (
-                  <div key={i} className="pi-line"><span data-mt-en2vet>{l.site || l.label}</span><span>{window.money(l.amount)}</span></div>
-                ))}
-                <div className="pi-line total"><span>Total</span><span>{window.money(c.invoice.total)}</span></div>
-              </div>
-              <button className="btn btn-ghost btn-sm" style={{width:'100%', justifyContent:'center'}} onClick={viewInvoice}>
-                View / download invoice
-              </button>
-            </div>
-          )}
+          {window.PortalCaseBilling && <window.PortalCaseBilling c={c} statements={statements} />}
         </div>
       </div>
 

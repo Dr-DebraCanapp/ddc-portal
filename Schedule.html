@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Schedule · Reviewer Console · Dr. Debra Canapp</title>
+<meta name="robots" content="noindex, nofollow" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="styles.css" />
+<link rel="stylesheet" href="portal.css" />
+<link rel="stylesheet" href="reviewer.css" />
+<link rel="stylesheet" href="schedule.css" />
+</head>
+<body data-screen-label="Schedule">
+  <div id="root"></div>
+
+  <!-- React -->
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+  <!-- Supabase (cloud backend — required) -->
+  <script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script src="config.js"></script>
+
+  <!-- DICOM viewer stack (same as the reviewer portal) -->
+  <script src="https://unpkg.com/hammerjs@2.0.8/hammer.min.js"></script>
+  <script src="https://unpkg.com/dicom-parser@1.8.21/dist/dicomParser.min.js"></script>
+  <script src="https://unpkg.com/cornerstone-core@2.6.1/dist/cornerstone.min.js"></script>
+  <script src="https://unpkg.com/cornerstone-math@0.1.10/dist/cornerstoneMath.min.js"></script>
+  <script src="https://unpkg.com/cornerstone-wado-image-loader@4.13.0/dist/cornerstoneWADOImageLoader.bundle.min.js"></script>
+  <!-- pdf.js — text extraction for intake auto-fill -->
+  <script src="https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
+  <script>
+    if (window.pdfjsLib) { window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.worker.min.js'; }
+  </script>
+  <script>
+    (function initCornerstone() {
+      if (typeof cornerstone === 'undefined' || typeof cornerstoneWADOImageLoader === 'undefined') { console.warn('[schedule] cornerstone not loaded'); return; }
+      try {
+        cornerstoneWADOImageLoader.external.cornerstone = cornerstone;
+        cornerstoneWADOImageLoader.external.dicomParser = dicomParser;
+        const V = '4.13.0';
+        const workerSrc = `https://unpkg.com/cornerstone-wado-image-loader@${V}/dist/cornerstoneWADOImageLoaderWebWorker.min.js`;
+        const codecsSrc = `https://unpkg.com/cornerstone-wado-image-loader@${V}/dist/cornerstoneWADOImageLoaderCodecs.min.js`;
+        const blobUrl = URL.createObjectURL(new Blob([`self.importScripts('${workerSrc}');`], { type: 'application/javascript' }));
+        cornerstoneWADOImageLoader.webWorkerManager.initialize({
+          maxWebWorkers: Math.max(1, (navigator.hardwareConcurrency || 2) - 1),
+          startWebWorkersOnDemand: true, webWorkerPath: blobUrl,
+          taskConfiguration: { decodeTask: { initializeCodecsOnStartup: false, strict: false, codecsPath: codecsSrc, usePDFJS: false } },
+        });
+        cornerstoneWADOImageLoader.configure({ useWebWorkers: true, decodeConfig: { convertFloatPixelDataToInt: false } });
+        window.__cornerstone_ready = true;
+        console.log('[schedule] cornerstone ready');
+      } catch (e) { console.warn('[schedule] cornerstone init failed', e); }
+    })();
+  </script>
+
+  <!-- Schedule app -->
+  <script src="schedule-cloud.js"></script>
+  <script type="text/babel" src="schedule-data.jsx"></script>
+  <script type="text/babel" src="schedule-intake.jsx"></script>
+  <script type="text/babel" src="schedule-viewer.jsx"></script>
+  <script type="text/babel" src="billing-accounts.jsx"></script>
+  <script type="text/babel" src="schedule-billing.jsx"></script>
+  <script type="text/babel" src="billing-entities.jsx"></script>
+  <script type="text/babel" src="schedule-shared.jsx"></script>
+  <script type="text/babel" src="schedule-billing-ui.jsx"></script>
+  <script type="text/babel" src="schedule-billing-send.jsx"></script>
+  <script type="text/babel" src="schedule-billing-view.jsx"></script>
+  <script type="text/babel" src="schedule-ai.jsx"></script>
+  <script type="text/babel" src="schedule-views.jsx"></script>
+  <script type="text/babel" src="schedule-app.jsx"></script>
+</body>
+</html>

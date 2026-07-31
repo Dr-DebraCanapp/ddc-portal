@@ -31,6 +31,14 @@ window.PORTAL_CONFIG = {
     siteKey: '0x4AAAAAAD7d0v65_6WluaZP',
   },
 
+  // AI intake review on the scheduler (Schedule.html → schedule-ai.jsx).
+  // Reads uploaded referral paperwork/radiographs, auto-fills the patient form
+  // and writes an ortho + medical-record summary with prep flags. Leave
+  // enabled:false to use the built-in rule-based read (no network, no key).
+  // Set true after `supabase functions deploy ai-intake` +
+  // `supabase secrets set ANTHROPIC_API_KEY=...`. See AI-INTAKE-SETUP.md.
+  ai: { enabled: false },
+
   // Invoice payment options.
   // FULL INTEGRATION (pre-filled amount + auto mark-paid): set payEndpoint to
   // your Cloudflare Worker URL (see stripe-worker/README.md). Leave it blank to
@@ -41,5 +49,15 @@ window.PORTAL_CONFIG = {
     payOnlineName:  'Pay online by card',  // button label
     checkPayableTo: 'Dr. Debra Canapp',
     checkMailTo:    '',                    // full mailing address; blank hides the mail-to line
+
+    // ---- how clients are told to pay (prints on invoices, receipts, emails) ----
+    // Where they log in to view a statement and its payment history.
+    portalUrl:      'https://portal.drdebracanapp.com',
+    // ACH / bank transfer details. Leave blank to hide the ACH line.
+    achBank:        '',                    // e.g. 'Truist Bank'
+    achAccountName: 'Dr. Debra Canapp',
+    achRouting:     '',                    // leave blank until you're happy putting it on a PDF
+    achAccount:     '',                    // last 4 is fine, e.g. '••••4471'
+    achEmailNote:   'Ask us for ACH details if you would like to pay by bank transfer.',
   },
 };

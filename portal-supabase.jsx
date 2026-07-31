@@ -81,7 +81,6 @@
       report: r.report || null,
       sites: r.sites || [],
       invoice: r.invoice || null,
-      lang: r.lang || 'en',
     };
   }
   function caseToRow(c) {
@@ -110,7 +109,6 @@
       report: c.report || null,
       sites: c.sites || [],
       invoice: c.invoice || null,
-      lang: c.lang || 'en',
       updated_at: new Date().toISOString(),
     };
   }
@@ -362,19 +360,7 @@
     // Cache populated by refreshApplications(); call refresh first in views.
     return _appsCache;
   }
-  async function submitApplication(data, token) {
-    const useCaptcha = !!(window.PORTAL_CONFIG && window.PORTAL_CONFIG.turnstile && window.PORTAL_CONFIG.turnstile.siteKey);
-    if (useCaptcha) {
-      // Verified path: Turnstile token checked server-side, row inserted with
-      // service_role. Anonymous applicant can't read applications back, so we
-      // don't refresh here (refreshApplications would just be RLS-blocked).
-      const { data: res, error } = await sb.functions.invoke('public-submit', {
-        body: { form: 'application', token, payload: data },
-      });
-      if (error) throw error;
-      if (res && res.error) throw new Error(res.error);
-      return;
-    }
+  async function submitApplication(data) {
     const id = `APP-${Date.now()}-${Math.random().toString(36).slice(2,6)}`;
     const row = {
       id,
@@ -424,10 +410,14 @@
   /* ============================================================
      REPORTS + TIMELINE
      ============================================================ */
-  async function getAllComments() {
-    const { data, error } = await sb.from('case_comments').select('case_id, role, ts');
-    if (error) { console.warn('[portal] getAllComments failed', error); return []; }
-    return data || [];
+  /* What a finalized read costs, for the practice's monthly statement. */
+  async function setCaseBilling(caseId, billing) {
+    const { error } = await sb.from('cases').update({
+      bill_service: billing.billService || null,
+      rush: !!billing.rush,
+      finalized_at: new Date().toISOString(),
+    }).eq('id', caseId);
+    if (error) throw error;
   }
 
   async function saveReport(caseId, report) {
@@ -461,6 +451,11 @@
     const { error } = await sb.from('case_comments').insert(row);
     if (error) throw error;
     return getComments(caseId);
+  }
+  async function getAllComments() {
+    const { data, error } = await sb.from('case_comments').select('case_id, role, ts');
+    if (error) { console.warn('[portal] getAllComments failed', error); return []; }
+    return data || [];
   }
 
   async function saveInvoice(caseId, invoice) {
@@ -542,7 +537,8 @@
     // accounts (advisory in cloud mode)
     getAccounts, saveAccounts, addAccount,
     // reports + timeline
-    saveReport, advanceTimeline, nowLabel,
+    saveReport, setCaseBilling, advanceTimeline, nowLabel,
+    // comments
     getComments, addComment, getAllComments,
     saveInvoice, setInvoicePaid,
     ensureSession, uploadFiles,

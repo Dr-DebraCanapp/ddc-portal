@@ -118,7 +118,7 @@ function LoginView({ onLogin, onApply }) {
   return (
     <div className="auth-shell">
       <aside className="auth-aside">
-        <a href="https://drdebracanapp.com" className="brand">
+        <a href="index.html" className="brand">
           <img src="assets/logo-mark.png" alt="" />
           <span>
             <div className="nm" style={{color:'var(--paper)'}}>Dr. Debra Canapp</div>
@@ -164,7 +164,7 @@ function LoginView({ onLogin, onApply }) {
           <div className="auth-alt">
             Need access? <a href="#" onClick={(e) => { e.preventDefault(); onApply(); }}>Apply for an account</a>
             <br /><br />
-            <a href="https://drdebracanapp.com" style={{color:'var(--ink-3)', borderBottom:'none', fontSize:12, letterSpacing:'0.16em', textTransform:'uppercase'}}>← Back to drdebracanapp.com</a>
+            <a href="index.html" style={{color:'var(--ink-3)', borderBottom:'none', fontSize:12, letterSpacing:'0.16em', textTransform:'uppercase'}}>← Back to drdebracanapp.com</a>
           </div>
         </div>
       </main>
@@ -174,14 +174,11 @@ function LoginView({ onLogin, onApply }) {
 
 function ApplyView({ onBack }) {
   const [submitted, setSubmitted] = pUseState(false);
-  const [capToken, setCapToken] = pUseState('');
   const [data, setData] = pUseState({ name: '', license: '', clinic: '', email: '', phone: '', country: 'USA', state: '', specialty: '', why: '' });
   const set = (k) => (e) => setData({ ...data, [k]: e.target.value });
-  const capOn = window.turnstileEnabled && window.turnstileEnabled();
   const submit = async (e) => {
     e.preventDefault();
-    if (capOn && !capToken) { alert('Please complete the anti-spam check.'); return; }
-    try { await window.PortalDB.submitApplication(data, capToken); }
+    try { await window.PortalDB.submitApplication(data); }
     catch (err) { alert('Could not submit application: ' + (err.message || err)); return; }
     setSubmitted(true);
   };
@@ -190,7 +187,7 @@ function ApplyView({ onBack }) {
     return (
       <div className="auth-shell">
         <aside className="auth-aside">
-          <a href="https://drdebracanapp.com" className="brand">
+          <a href="index.html" className="brand">
             <img src="assets/logo-mark.png" alt="" />
             <span><div className="nm" style={{color:'var(--paper)'}}>Dr. Debra Canapp</div><div className="sub">Referral Portal</div></span>
           </a>
@@ -214,7 +211,7 @@ function ApplyView({ onBack }) {
   return (
     <div className="auth-shell">
       <aside className="auth-aside">
-        <a href="https://drdebracanapp.com" className="brand">
+        <a href="index.html" className="brand">
           <img src="assets/logo-mark.png" alt="" />
           <span><div className="nm" style={{color:'var(--paper)'}}>Dr. Debra Canapp</div><div className="sub">Referral Portal</div></span>
         </a>
@@ -249,8 +246,7 @@ function ApplyView({ onBack }) {
             </div>
             <div className="form-row"><label className="form-label">Primary specialty / focus</label><input className="form-input" value={data.specialty} onChange={set('specialty')} placeholder="GP / Sports Med / Rehab / Surgery / etc." /></div>
             <div className="form-row"><label className="form-label">Why are you requesting access?</label><textarea className="form-area" value={data.why} onChange={set('why')} placeholder="Briefly — what types of cases would you submit?" /></div>
-            {capOn && window.TurnstileBox ? <window.TurnstileBox onToken={setCapToken} /> : null}
-            <button type="submit" className="btn form-btn-primary" disabled={capOn && !capToken}>Submit application <span className="arrow">→</span></button>
+            <button type="submit" className="btn form-btn-primary">Submit application <span className="arrow">→</span></button>
           </form>
           <div className="auth-alt"><a href="#" onClick={(e) => { e.preventDefault(); onBack(); }}>← Back to sign in</a></div>
         </div>
@@ -290,6 +286,18 @@ function AppBar({ session, crumb, logout, onHome }) {
    DASHBOARD
    ============================================================ */
 function Dashboard({ session, onNew, onOpen }) {
+  const [statements, setStatements] = pUseState([]);
+  pUseEffect(() => {
+    (async () => {
+      if (!window.pbMine || !window.PortalDB.getAllCases) return;
+      try {
+        const all = await window.PortalDB.getAllCases();
+        let stmts = {};
+        if (window.SchedCloud && window.SchedCloud.configured) stmts = await window.SchedCloud.loadStatements().catch(() => ({}));
+        setStatements(window.pbMine(all, session && session.clinic, stmts));
+      } catch (e) { setStatements([]); }
+    })();
+  }, [session]);
   const [cases, setCases] = pUseState([]);
   const [unread, setUnread] = pUseState({});
   pUseEffect(() => {
@@ -351,6 +359,7 @@ function Dashboard({ session, onNew, onOpen }) {
           ))}
         </div>
       )}
+      {window.PortalBillingHistory && <window.PortalBillingHistory statements={statements} />}
     </main>
   );
 }
@@ -515,7 +524,7 @@ function UnreadBadge({ n, label }) {
   );
 }
 
-function CommentThread({ caseId, role, name, locked, srcLang }) {
+function CommentThread({ caseId, role, name, locked }) {
   const [comments, setComments] = pUseState([]);
   const [draft, setDraft] = pUseState('');
   const [sending, setSending] = pUseState(false);
@@ -567,26 +576,16 @@ function CommentThread({ caseId, role, name, locked, srcLang }) {
         {loaded && comments.length === 0 && (
           <div className="ct-empty">No messages yet. {role === 'vet' ? 'Start the conversation below.' : 'Awaiting questions from the referring veterinarian.'}</div>
         )}
-        {comments.map(c => {
-          // Cross-role messages get machine-translated for the reader:
-          //  vet reading Dr. Canapp (English) -> vet language;
-          //  Dr. Canapp reading the vet -> English (from the case's language).
-          let mt = null;
-          if (c.role !== role) {
-            if (role === 'vet') mt = { 'data-mt-en2vet': '' };
-            else if (role === 'reviewer') mt = { 'data-mt-vet2en': '', 'data-mt-lang': srcLang || 'en' };
-          }
-          return (
+        {comments.map(c => (
           <div key={c.id} className={`ct-msg ${c.role === role ? 'mine' : 'theirs'} ${c.role === 'reviewer' ? 'is-reviewer' : 'is-vet'}`}>
             <div className="ct-msg-head">
               <span className="ct-author">{c.name}</span>
               <span className="ct-role">{c.role === 'reviewer' ? 'Dr. Canapp · Reviewer' : 'Referring vet'}</span>
               <span className="ct-time">{relTime(c.ts)}</span>
             </div>
-            <div className="ct-bubble" {...(mt || {})}>{c.text}</div>
+            <div className="ct-bubble">{c.text}</div>
           </div>
-          );
-        })}
+        ))}
       </div>
 
       <div className="ct-compose">

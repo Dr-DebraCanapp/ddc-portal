@@ -176,7 +176,6 @@ function DicomViewer({ caseId, files, initialFileIndex = 0, onClose }) {
   const [loadError, setLoadError] = vUseState(null);
   const [loading, setLoading] = vUseState(false);
   const [annotationSaved, setAnnotationSaved] = vUseState(false);
-  const [addedToReport, setAddedToReport] = vUseState(false);
   const [measurements, setMeasurements] = vUseState([]);
   const [calibrating, setCalibrating] = vUseState(false);
   const [calSource, setCalSource] = vUseState(null); // 'us-region' | 'pixel-spacing' | 'manual' | ...
@@ -475,28 +474,6 @@ function DicomViewer({ caseId, files, initialFileIndex = 0, onClose }) {
     } catch (e) { console.warn(e); }
   };
 
-  /* --- Capture the annotated canvas and attach it to the report --- */
-  const addToReport = async () => {
-    if (!elementRef.current || !caseId) return;
-    try {
-      const canvas = elementRef.current.querySelector('canvas');
-      if (!canvas) return;
-      const dataUrl = canvas.toDataURL('image/png');
-      const caption = window.prompt(
-        'Caption for this figure (shown to the referring veterinarian). Leave blank for none:',
-        ''
-      );
-      if (caption === null) return; // cancelled
-      await window.PortalDB.addReportFigure(caseId, {
-        dataUrl,
-        sourceName: file.name,
-        caption: caption.trim(),
-      });
-      setAddedToReport(true);
-      setTimeout(() => setAddedToReport(false), 2200);
-    } catch (e) { console.warn(e); alert('Could not add image to report: ' + (e && e.message ? e.message : e)); }
-  };
-
   /* --- Calibration --- */
   const startCalibration = () => {
     setCalibrating(true);
@@ -583,7 +560,6 @@ function DicomViewer({ caseId, files, initialFileIndex = 0, onClose }) {
           onReset={resetView}
           onClearAnnotations={clearAll}
           onDownload={downloadAnnotated}
-          onAddToReport={addToReport}
           onStartCalibration={startCalibration}
           hasSpacing={hasSpacing}
         />
@@ -648,7 +624,6 @@ function DicomViewer({ caseId, files, initialFileIndex = 0, onClose }) {
           )}
 
           {isImage && annotationSaved && <div className="ann-saved">✓ Saved</div>}
-          {isImage && addedToReport && <div className="ann-saved report">★ Added to report</div>}
           {calibrating && (
             <CalibrationPrompt onApply={applyCalibration} onCancel={() => setCalibrating(false)} />
           )}
@@ -852,7 +827,7 @@ function CalibrationPrompt({ onApply, onCancel }) {
 /* ============================================================
    TOOLBAR
    ============================================================ */
-function Toolbar({ active, setActive, onReset, onClearAnnotations, onDownload, onAddToReport, onStartCalibration, hasSpacing }) {
+function Toolbar({ active, setActive, onReset, onClearAnnotations, onDownload, onStartCalibration, hasSpacing }) {
   const groups = [
     {
       label: 'Measure',
@@ -902,10 +877,6 @@ function Toolbar({ active, setActive, onReset, onClearAnnotations, onDownload, o
       <div className="tool-group tool-group-actions">
         <span className="tool-group-label">Actions</span>
         <div className="tool-buttons">
-          <button className="tool-btn tool-btn-report" onClick={onAddToReport} title="Capture this annotated image and attach it to the report the referring vet receives">
-            <span className="tool-glyph">★</span>
-            <span className="tool-label">Add to report</span>
-          </button>
           <button className="tool-btn" onClick={onStartCalibration} title="Set scale: draw a line of known length, enter the length in cm">
             <span className="tool-glyph">⇔</span>
             <span className="tool-label">{hasSpacing ? 'Re-calibrate' : 'Calibrate'}</span>

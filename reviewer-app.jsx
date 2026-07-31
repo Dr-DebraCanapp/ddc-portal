@@ -149,7 +149,7 @@ function AdminLogin({ onLogin }) {
         </form>
 
         <div className="adm-foot">
-          <a href="index.html">← Are you a referring veterinarian? Use the public portal</a>
+          <a href="portal.html">← Are you a referring veterinarian? Use the public portal</a>
         </div>
       </div>
     </div>
@@ -173,7 +173,6 @@ function Console({ session, logout }) {
   const goInbox = () => setView({ name: 'inbox' });
   const goCase = (id) => setView({ name: 'case', id });
   const goApps = () => setView({ name: 'apps' });
-  const goVets = () => setView({ name: 'vets' });
 
   rUseEffect(() => {
     if (window.PortalDB.getAllComments) {
@@ -192,21 +191,19 @@ function Console({ session, logout }) {
         unread={totalUnread}
         onInbox={goInbox}
         onApps={goApps}
-        onVets={goVets}
       />
       {view.name === 'inbox' && <Inbox session={session} onOpenCase={goCase} unread={unread} />}
-      {view.name === 'case' && <window.CaseReviewView id={view.id} onBack={goInbox} session={session} />}
+      {view.name === 'case' && <window.CaseReviewView id={view.id} onBack={goInbox} session={session} allCases={cases} onBillingChange={reload} />}
       {view.name === 'apps' && <window.ApplicationsView onBack={goInbox} />}
-      {view.name === 'vets' && <window.VetsView onBack={goInbox} onOpenCase={goCase} />}
     </div>
   );
 }
 
-function ReviewerBar({ session, logout, view, unread, onInbox, onApps, onVets }) {
+function ReviewerBar({ session, logout, view, unread, onInbox, onApps }) {
   return (
     <header className="rv-bar">
       <div className="rv-bar-inner">
-        <a href="https://drdebracanapp.com" className="rv-brand" title="Public site">
+        <a href="index.html" className="rv-brand" title="Public site">
           <img src="assets/logo-mark.png" alt="" />
           <div>
             <div className="rv-brand-name">Reviewer Console</div>
@@ -215,9 +212,10 @@ function ReviewerBar({ session, logout, view, unread, onInbox, onApps, onVets })
         </a>
 
         <nav className="rv-nav">
+          <a className="rv-nav-link" href="Console.html" title="Everything in one place — remote reads + in-person" style={{ textDecoration: 'none' }}>⌂ Console</a>
           <button className={view === 'inbox' ? 'active' : ''} onClick={onInbox}>Case inbox<window.UnreadBadge n={unread} label={`${unread || 0} case${unread === 1 ? '' : 's'} with new vet messages`} /></button>
-          <button className={view === 'vets' ? 'active' : ''} onClick={onVets}>Referring vets</button>
           <button className={view === 'apps' ? 'active' : ''} onClick={onApps}>Applications</button>
+          <a className="rv-nav-link muted" href="Schedule.html" title="In-person scheduling (clinical days)" style={{ textDecoration: 'none' }}>In-person ↗</a>
         </nav>
 
         <div className="rv-who">

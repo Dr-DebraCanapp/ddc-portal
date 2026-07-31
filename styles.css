@@ -374,43 +374,90 @@ section { position: relative; }
 }
 
 /* ============= Hero ============= */
+/* Hero — cover masthead: full-bleed portrait, name breaking across the seam */
 .hero {
+  position: relative;
   background: var(--paper);
   overflow: hidden;
+  min-height: 84vh;
 }
-.hero-grid {
-  display: grid;
-  grid-template-columns: 1.1fr 0.9fr;
-  align-items: stretch;
-  min-height: 78vh;
-}
-@media (max-width: 1000px) { .hero-grid { grid-template-columns: 1fr; min-height: auto; } }
-
-.hero-left {
-  padding: clamp(56px, 8vw, 120px) clamp(48px, 5vw, 80px) clamp(56px, 8vw, 120px) 0;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: 40px;
-}
-@media (max-width: 1000px) { .hero-left { padding-right: 0; padding-bottom: 48px; } }
-
-.hero-right {
-  position: relative;
+.hero-photo {
+  position: absolute;
+  top: 0; right: 0; bottom: 0;
+  width: 56%;
   background: var(--paper-deep);
+  overflow: hidden;
 }
 .hero-portrait {
   width: 100%;
   height: 100%;
-  min-height: 480px;
   object-fit: cover;
-  object-position: center 25%;
+  object-position: center 40%;
+}
+.hero-photo::after {
+  content: '';
+  position: absolute; inset: 0;
+  background: linear-gradient(90deg, var(--paper) 0%, rgba(244,239,229,0) 34%);
+}
+.hero-seam {
+  position: absolute;
+  top: 0; bottom: 0; left: 44%;
+  width: 1px;
+  background: var(--clay);
+  opacity: 0.5;
+  z-index: 4;
+}
+.hero-caption {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 4px;
+  padding-top: 20px;
+  border-top: 1px solid var(--rule);
+  max-width: 520px;
+  font-family: var(--sans);
+  font-weight: 500;
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink-4);
+}
+.hero-caption::before {
+  content: '';
+  width: 22px; height: 1px;
+  background: var(--clay);
+  flex: 0 0 auto;
+}
+.hero-copy {
+  position: relative;
+  z-index: 3;
+  width: 64%;
+  min-height: 84vh;
+  padding: clamp(40px,6vw,72px) 0 clamp(48px,7vw,88px) clamp(24px,5vw,72px);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 34px;
+}
+.hero-copy .hero-name { margin: 0; }
+.hero-copy .hero-name .line-2 {
+  display: block;
+  margin-left: 1.4em;
+}
+.hero-copy .hero-lede { max-width: 520px; }
+@media (max-width: 1000px) {
+  .hero { min-height: auto; }
+  .hero-photo { position: relative; width: 100%; height: 52vw; }
+  .hero-photo::after { background: linear-gradient(0deg, var(--paper) 0%, rgba(244,239,229,0) 40%); }
+  .hero-seam { display: none; }
+  .hero-copy { width: 100%; min-height: auto; padding: 40px 24px 56px; justify-content: flex-start; }
+  .hero-copy .hero-name .line-2 { margin-left: 0.8em; }
 }
 
 /* ============= Anatomy strip ============= */
 .region-list {
   display: grid;
-  grid-template-columns: repeat(6, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   border-top: 1px solid var(--ink);
   border-bottom: 1px solid var(--ink);
 }

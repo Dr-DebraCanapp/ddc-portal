@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Hospital Intake · Dr. Debra Canapp</title>
+<meta name="robots" content="noindex, nofollow" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="styles.css" />
+<link rel="stylesheet" href="portal.css" />
+<link rel="stylesheet" href="reviewer.css" />
+<link rel="stylesheet" href="schedule.css" />
+<style>
+  .ci-page { min-height: 100vh; background: var(--cream); }
+  .ci-band { background: var(--ink); color: var(--paper); padding: 44px 32px 40px; }
+  .ci-band-in { max-width: 720px; margin: 0 auto; display: flex; align-items: center; gap: 20px; }
+  .ci-band img { width: 60px; height: 60px; object-fit: contain; filter: invert(1) brightness(1.6); }
+  .ci-band .eyebrow { font-size: 10.5px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--tan); font-weight: 600; }
+  .ci-band h1 { font-family: var(--serif); font-size: clamp(28px, 4vw, 40px); letter-spacing: -0.02em; line-height: 1.05; margin: 6px 0 8px; }
+  .ci-band p { font-size: 14px; color: rgba(244,239,229,0.72); max-width: 560px; line-height: 1.55; margin: 0; }
+  .ci-main { max-width: 720px; margin: 0 auto; padding: 34px 32px 70px; }
+  .ci-card { background: var(--paper); border: 1px solid var(--rule-2); padding: 32px 34px; }
+  .ci-sec { font-size: 10.5px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--ink-3); font-weight: 600; margin: 26px 0 14px; padding-bottom: 8px; border-bottom: 1px solid var(--rule); }
+  .ci-sec:first-child { margin-top: 0; }
+  .ci-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .ci-grid .full { grid-column: 1 / -1; }
+  @media (max-width: 560px) { .ci-grid { grid-template-columns: 1fr; } }
+  .ci-note { display: flex; gap: 12px; align-items: flex-start; border: 1px solid var(--rule-2); border-left: 4px solid var(--clay); background: rgba(177,106,72,0.05); padding: 13px 16px; margin: 22px 0 0; font-size: 12.5px; line-height: 1.55; color: var(--ink-2); }
+  .ci-note .ic { color: var(--clay); flex-shrink: 0; }
+  .ci-done { text-align: center; padding: 40px 20px; }
+  .ci-done .mk { width: 64px; height: 64px; border-radius: 50%; background: rgba(31,138,91,0.1); color: #1f8a5b; display: inline-flex; align-items: center; justify-content: center; font-size: 30px; margin-bottom: 18px; }
+  .ci-done h2 { font-family: var(--serif); font-size: 30px; letter-spacing: -0.02em; margin: 0 0 10px; }
+  .ci-done p { font-size: 14px; color: var(--ink-2); line-height: 1.6; max-width: 460px; margin: 0 auto; }
+</style>
+</head>
+<body data-screen-label="Hospital Intake">
+  <div id="root"></div>
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script src="config.js"></script>
+  <script type="text/babel">
+    const { useState, useEffect, useRef } = React;
+    const SITES = ['Shoulder', 'Elbow', 'Carpus', 'Stifle', 'Tarsus', 'Common calcaneal (Achilles)', 'Iliopsoas', 'Piriformis'];
+    const WD = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
+    const CAP_SITEKEY = (window.PORTAL_CONFIG && window.PORTAL_CONFIG.turnstile && window.PORTAL_CONFIG.turnstile.siteKey) || '';
+    let _capLoad = null;
+    function ensureTurnstile() {
+      if (window.turnstile) return Promise.resolve();
+      if (_capLoad) return _capLoad;
+      _capLoad = new Promise((res, rej) => {
+        const s = document.createElement('script');
+        s.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
+        s.async = true; s.defer = true;
+        s.onload = () => res(); s.onerror = () => rej();
+        document.head.appendChild(s);
+      });
+      return _capLoad;
+    }
+    function Turnstile({ onToken }) {
+      const host = useRef(null), wid = useRef(null);
+      useEffect(() => {
+        if (!CAP_SITEKEY) return;
+        let cx = false;
+        ensureTurnstile().then(function r() {
+          if (cx) return;
+          if (!window.turnstile || !host.current) { setTimeout(r, 100); return; }
+          wid.current = window.turnstile.render(host.current, { sitekey: CAP_SITEKEY, callback: t => onToken(t), 'expired-callback': () => onToken(''), 'error-callback': () => onToken('') });
+        }).catch(() => {});
+        return () => { cx = true; try { if (wid.current && window.turnstile) window.turnstile.remove(wid.current); } catch (e) {} };
+      }, []);
+      if (!CAP_SITEKEY) return null;
+      return <div style={{ margin: '18px 0 0' }}><div ref={host}></div></div>;
+    }
+
+    function IntakeForm() {
+      const [f, setF] = useState({
+        hospital: '', city: '', state: '', address: '',
+        contact: '', role: '', email: '', phone: '',
+        estPatients: '2–4', sites: [], sedation: '', prefDays: [], notes: '',
+      });
+      const [done, setDone] = useState(false);
+      const [busy, setBusy] = useState(false);
+      const [err, setErr] = useState('');
+      const [capToken, setCapToken] = useState('');
+      const capOn = !!CAP_SITEKEY;
+      const submit = async () => {
+        setBusy(true); setErr('');
+        try {
+          const cfg = (window.PORTAL_CONFIG && window.PORTAL_CONFIG.supabase) || {};
+          if (!cfg.url || !cfg.anonKey || !window.supabase) throw new Error('The booking service is not reachable right now — please email info@DrDebraCanapp.com.');
+          const sb = window.supabase.createClient(cfg.url, cfg.anonKey);
+          if (capOn) {
+            const { data: res, error } = await sb.functions.invoke('public-submit', {
+              body: { form: 'visit', token: capToken, payload: f },
+            });
+            if (error) throw new Error(error.message || 'Submission failed');
+            if (res && res.error) throw new Error(res.error);
+          } else {
+            const { error } = await sb.from('sched_visit_requests').insert({
+              id: 'REQ-' + Date.now().toString(36),
+              hospital: f.hospital, city: f.city, state: f.state, address: f.address || null,
+              contact: f.contact, contact_role: f.role || null, email: f.email, phone: f.phone || null,
+              est_patients: f.estPatients, case_types: f.sites, sedation: f.sedation.startsWith('Yes'),
+              pref_days: f.prefDays, notes: f.notes || null, status: 'pending',
+            });
+            if (error) throw new Error(error.message);
+          }
+          setDone(true);
+        } catch (ex) { setErr(ex.message || 'Submission failed — please try again.'); }
+        setBusy(false);
+      };
+      const set = (k, v) => setF(p => ({ ...p, [k]: v }));
+      const toggle = (k, v) => setF(p => ({ ...p, [k]: p[k].includes(v) ? p[k].filter(x => x !== v) : [...p[k], v] }));
+      const valid = f.hospital.trim() && f.city.trim() && f.state.trim() && f.contact.trim() && f.email.trim() && f.sedation && (!capOn || capToken);
+
+      if (done) {
+        return (
+          <div className="ci-page">
+            <div className="ci-band"><div className="ci-band-in">
+              <img src="assets/logo-mark.png" alt="" onError={e => e.target.style.display = 'none'} />
+              <div><div className="eyebrow">In-Person MSK Ultrasound</div><h1>Request received.</h1></div>
+            </div></div>
+            <div className="ci-main"><div className="ci-card ci-done">
+              <div className="mk">✓</div>
+              <h2>Thank you, {f.hospital || 'your team'}.</h2>
+              <p>Your intake has been submitted. A profile has been created for <strong>Allyson Li</strong> to review and finalize. Once approved, you'll receive login details to book Dr. Canapp's available days and upload patient information for each visit.</p>
+            </div></div>
+          </div>
+        );
+      }
+
+      return (
+        <div className="ci-page">
+          <div className="ci-band"><div className="ci-band-in">
+            <img src="assets/logo-mark.png" alt="" onError={e => e.target.style.display = 'none'} />
+            <div>
+              <div className="eyebrow">In-Person MSK Ultrasound</div>
+              <h1>Request an in-person visit</h1>
+              <p>Tell us about your hospital and the cases you'd like seen. We'll set up your account and coordinate a clinic day with Dr. Canapp.</p>
+            </div>
+          </div></div>
+          <div className="ci-main"><div className="ci-card">
+            <div className="ci-sec">Your hospital</div>
+            <div className="ci-grid">
+              <div className="form-row full"><label className="form-label">Hospital / practice name<span className="req">*</span></label><input className="form-input" value={f.hospital} onChange={e => set('hospital', e.target.value)} /></div>
+              <div className="form-row"><label className="form-label">City<span className="req">*</span></label><input className="form-input" value={f.city} onChange={e => set('city', e.target.value)} /></div>
+              <div className="form-row"><label className="form-label">State<span className="req">*</span></label><input className="form-input" value={f.state} onChange={e => set('state', e.target.value)} /></div>
+              <div className="form-row full"><label className="form-label">Street address</label><input className="form-input" value={f.address} onChange={e => set('address', e.target.value)} /></div>
+            </div>
+
+            <div className="ci-sec">Primary contact</div>
+            <div className="ci-grid">
+              <div className="form-row"><label className="form-label">Name<span className="req">*</span></label><input className="form-input" value={f.contact} onChange={e => set('contact', e.target.value)} placeholder="Dr. …" /></div>
+              <div className="form-row"><label className="form-label">Role</label><input className="form-input" value={f.role} onChange={e => set('role', e.target.value)} placeholder="e.g. Medical Director" /></div>
+              <div className="form-row"><label className="form-label">Email<span className="req">*</span></label><input className="form-input" type="email" value={f.email} onChange={e => set('email', e.target.value)} /></div>
+              <div className="form-row"><label className="form-label">Phone</label><input className="form-input" value={f.phone} onChange={e => set('phone', e.target.value)} /></div>
+            </div>
+
+            <div className="ci-sec">About your caseload</div>
+            <div className="form-row"><label className="form-label">Typical patients per visit</label>
+              <select className="form-select" value={f.estPatients} onChange={e => set('estPatients', e.target.value)}>
+                <option>1</option><option>2–4</option><option>5–6</option><option>7+</option>
+              </select>
+            </div>
+            <div className="form-row" style={{ marginTop: 14 }}><label className="form-label">Sites you most often need evaluated</label>
+              <div className="sc-chiprow">
+                {SITES.map(s => <button key={s} type="button" className={`sc-chip ${f.sites.includes(s) ? 'on' : ''}`} onClick={() => toggle('sites', s)}>{s}</button>)}
+              </div>
+            </div>
+            <div className="form-row" style={{ marginTop: 14 }}><label className="form-label">Can your hospital provide sedation on-site?<span className="req">*</span> <span style={{ textTransform: 'none', letterSpacing: 0, color: 'var(--ink-4)', fontWeight: 400 }}>— iliopsoas scans require it</span></label>
+              <div className="sc-chiprow">
+                {['Yes, we can sedate', 'No, we would need guidance'].map(o => <button key={o} type="button" className={`sc-chip ${f.sedation === o ? 'on' : ''}`} onClick={() => set('sedation', o)}>{o}</button>)}
+              </div>
+            </div>
+            <div className="form-row" style={{ marginTop: 14 }}><label className="form-label">Preferred weekdays for visits</label>
+              <div className="sc-daytoggle">
+                {WD.map(d => <button key={d} type="button" className={`sc-daybtn ${f.prefDays.includes(d) ? 'on' : ''}`} onClick={() => toggle('prefDays', d)}>{d}</button>)}
+              </div>
+            </div>
+            <div className="form-row" style={{ marginTop: 14 }}><label className="form-label">Anything else we should know?</label>
+              <textarea className="form-area" value={f.notes} onChange={e => set('notes', e.target.value)} placeholder="Facilities, parking, backlog of cases, scheduling constraints…" />
+            </div>
+
+            <div className="ci-note"><span className="ic">◑</span><div>Submitting creates a pending profile for Allyson Li to finalize — she'll assign your account details and confirm which days you can book. This is separate from the remote-read referral portal.</div></div>
+
+            {err && <div style={{ color: '#c24444', fontSize: 13, marginTop: 16 }}>{err}</div>}
+            {capOn && <Turnstile onToken={setCapToken} />}
+            <div style={{ marginTop: 22, display: 'flex', justifyContent: 'flex-end' }}>
+              <button className="btn btn-clay" disabled={!valid || busy} onClick={submit}>{busy ? 'Submitting…' : <React.Fragment>Submit request <span className="arrow">→</span></React.Fragment>}</button>
+            </div>
+          </div></div>
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<IntakeForm />);
+  </script>
+</body>
+</html>

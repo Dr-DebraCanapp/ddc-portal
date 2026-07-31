@@ -6,6 +6,10 @@
    Exposes: window.SERVICES, window.makeInvoiceNumber,
             window.buildInvoiceHTML, window.buildReportHTML
    ============================================================ */
+/* NOTE: the per-case invoice builder here is retired. Billing now runs on
+   the unified engine (schedule-billing.jsx): remote reads are batched into a
+   monthly statement per practice. buildReportHTML below is still used.
+   window.buildInvoiceHTML is kept only for old saved case invoices. */
 (function () {
   // Dr. Canapp's price list (from the practice). Each read covers one
   // bilateral site (left + right of the region).
@@ -23,24 +27,6 @@
     terms: 'Payment due upon receipt.',
   };
 
-  // Payment options printed on every invoice. Fill these in from config.js
-  // (window.PORTAL_CONFIG.payments) once the practice has a Stripe/PayPal link
-  // and a check-mailing address. Anything left blank is simply omitted.
-  const _pcfg = (window.PORTAL_CONFIG && window.PORTAL_CONFIG.payments) || {};
-  window.PAYMENTS = {
-    // Full integration: Cloudflare Worker endpoint that builds a pre-filled
-    // Stripe Checkout Session per invoice. When set, the “Pay online” button
-    // links to `${payEndpoint}/pay?case=<caseId>` and the amount is pre-filled.
-    payEndpoint:   _pcfg.payEndpoint   || '',
-    // Fallback: a static hosted payment link (Stripe Payment Link, PayPal.me).
-    // Used only if payEndpoint is blank. Vet types the amount.
-    payOnlineUrl:  _pcfg.payOnlineUrl  || '',
-    payOnlineName: _pcfg.payOnlineName || 'Pay online by card',
-    // Check instructions.
-    checkPayableTo: _pcfg.checkPayableTo || 'Dr. Debra Canapp',
-    checkMailTo:    _pcfg.checkMailTo    || '', // full mailing address, blank = hidden
-  };
-
   window.money = function (n) {
     return '$' + Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   };
@@ -55,43 +41,6 @@
 
   const esc = (s) => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   const para = (s) => esc(s).split(/\n\n+/).map(p => `<p>${p.replace(/\n/g, '<br>')}</p>`).join('');
-
-  // Payment-methods block for the printable invoice. Renders an online-pay
-  // card (only if a link is configured) and a pay-by-check card side by side.
-  function payMethodsHTML(inv, total, c) {
-    const pay = window.PAYMENTS || {};
-    const amt = window.money(total);
-    let onlineCard = '';
-    // Preferred: full integration — link to the Worker, which pre-fills the
-    // exact amount and auto-marks the invoice paid on success.
-    if (pay.payEndpoint && c && c.id) {
-      const base = pay.payEndpoint.replace(/\/+$/, '');
-      const href = `${base}/pay?case=${encodeURIComponent(c.id)}`;
-      onlineCard = `<div class="pay-method">
-        <h5>Pay online</h5>
-        <p>Pay ${esc(amt)} securely by card — the amount is filled in for you.</p>
-        <a class="pay-btn" href="${esc(href)}" target="_blank" rel="noopener">${esc(pay.payOnlineName || 'Pay online by card')} →</a>
-      </div>`;
-    } else if (pay.payOnlineUrl) {
-      // Fallback: static payment link (vet types the amount).
-      const sep = pay.payOnlineUrl.indexOf('?') >= 0 ? '&' : '?';
-      const href = pay.payOnlineUrl + sep + 'client_reference_id=' + encodeURIComponent(inv.number || '');
-      onlineCard = `<div class="pay-method">
-        <h5>Pay online</h5>
-        <p>Fast, secure card payment for ${esc(amt)}.</p>
-        <a class="pay-btn" href="${esc(href)}" target="_blank" rel="noopener">${esc(pay.payOnlineName || 'Pay online by card')} →</a>
-        <div class="pay-online-line">${esc(pay.payOnlineUrl)}</div>
-      </div>`;
-    }
-    const checkCard = `<div class="pay-method">
-      <h5>Pay by check</h5>
-      <p>Make checks payable to <strong>${esc(pay.checkPayableTo || window.PRACTICE.name)}</strong>.${
-        pay.checkMailTo ? `<br>Mail to:<br>${esc(pay.checkMailTo).replace(/\n/g, '<br>')}` : ''
-      }<br>Reference invoice ${esc(inv.number || '')}.</p>
-    </div>`;
-    return `<div class="pay-methods">${onlineCard}${checkCard}</div>
-      <div style="margin-top:14px;font-size:11px;color:#777;">Questions about this invoice? ${esc(window.PRACTICE.email)}</div>`;
-  }
 
   /* ---------------- INVOICE ---------------- */
   window.buildInvoiceHTML = function (c, invoice) {
@@ -145,14 +94,6 @@
   .totals .grand td:last-child { text-align: right; }
   .pay { margin-top: 30px; padding-top: 18px; border-top: 1px solid #e6e1d6; font-size: 12px; color: #444; }
   .pay strong { color: #1f1f1f; }
-  .pay-methods { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 16px; }
-  .pay-method { padding: 14px 16px; border: 1px solid #e6e1d6; border-radius: 3px; background: #fbf9f4; }
-  .pay-method h5 { margin: 0 0 6px; font-size: 9.5px; letter-spacing: 0.16em; text-transform: uppercase; color: #888; font-weight: 600; }
-  .pay-method p { margin: 0; font-size: 12px; line-height: 1.5; }
-  .pay-btn { display: inline-block; margin-top: 4px; padding: 9px 18px; background: #b16a48; color: #fff !important; text-decoration: none; font-size: 12px; font-weight: 600; letter-spacing: 0.03em; border-radius: 3px; }
-  .pay-online-line { margin-top: 3px; font-size: 11px; color: #777; word-break: break-all; }
-  @media (max-width: 520px) { .pay-methods { grid-template-columns: 1fr; } }
-  @media print { .pay-btn { border: 1.5px solid #b16a48; color: #b16a48 !important; background: #fff; } }
   .stamp { display: inline-block; margin-top: 10px; padding: 4px 12px; border: 2px solid #1f8a5b; color: #1f8a5b; font-size: 12px; letter-spacing: 0.18em; text-transform: uppercase; font-weight: 600; transform: rotate(-3deg); }
   footer { margin-top: 28px; font-size: 10.5px; color: #999; line-height: 1.6; }
   @media print { .noprint { display: none; } }
@@ -182,8 +123,8 @@
   <tr class="grand"><td>Total due</td><td>${window.money(total)}</td></tr>
 </table></div>
 <div class="pay">
-  <strong>${esc(P.terms)}</strong> &nbsp;Please reference invoice ${esc(inv.number || '')} with payment.
-  ${payMethodsHTML(inv, total, c)}
+  <strong>${esc(P.terms)}</strong><br>
+  Please reference invoice ${esc(inv.number || '')} with payment. Questions? ${esc(P.email)}
 </div>
 <footer>
   This invoice covers remote second-opinion diagnostic interpretation of musculoskeletal ultrasound and associated imaging for the patient named above. Each read covers one bilateral anatomical site unless otherwise noted.
@@ -195,8 +136,6 @@
   window.buildReportHTML = function (c, r) {
     const date = new Date().toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
     const sites = (c.sites && c.sites.length) ? c.sites.join(' · ') : '';
-    const figs = (c.reportFigures || []);
-    const figuresHTML = figs.length ? `<section class="figures"><h2>Annotated Images</h2><div class="fig-grid">${figs.map((f, i) => `<figure class="fig"><img src="${f.dataUrl}" alt="Figure ${i + 1}"/><figcaption><span class="fig-n">Figure ${i + 1}</span>${f.caption ? ' — ' + esc(f.caption) : ''}</figcaption></figure>`).join('')}</div></section>` : '';
     return `<!doctype html>
 <html><head><meta charset="utf-8"><title>${esc(c.id)} · ${esc(c.patient)} — Diagnostic Report</title>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -220,13 +159,6 @@
   .sigblock { margin-top: 36px; padding-top: 24px; border-top: 1px solid #1f1f1f; }
   .sigblock .name { font-family: 'Cormorant Garamond', serif; font-size: 19px; }
   .sigblock .role { font-size: 10.5px; letter-spacing: 0.16em; text-transform: uppercase; color: #888; margin-top: 6px; font-weight: 500; }
-  .figures { margin-top: 28px; }
-  .fig-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-top: 4px; }
-  .fig { margin: 0; break-inside: avoid; }
-  .fig img { width: 100%; height: auto; display: block; background: #000; border: 1px solid #ddd; border-radius: 2px; }
-  .fig figcaption { font-size: 11px; color: #555; margin-top: 6px; line-height: 1.45; }
-  .fig figcaption .fig-n { color: #b16a48; font-weight: 600; letter-spacing: 0.02em; }
-  @media print { .fig { page-break-inside: avoid; } }
   @media print { .draft-stamp { color: rgba(177,106,72,0.18); } .noprint { display:none; } }
   .noprint { text-align: center; margin-bottom: 18px; }
   .noprint button { font: inherit; padding: 9px 18px; background: #1f1f1f; color: #fff; border: none; cursor: pointer; letter-spacing: 0.04em; }
@@ -249,7 +181,6 @@ ${r.draft ? '<div class="draft-stamp">DRAFT</div>' : ''}
 <section><h2>Findings</h2>${para(r.findings) || '<p><em>—</em></p>'}</section>
 <section><h2>Impression / Diagnosis</h2>${para(r.impression) || '<p><em>—</em></p>'}</section>
 <section><h2>Recommendations</h2>${para(r.recommendations) || '<p><em>—</em></p>'}</section>
-${figuresHTML}
 <div class="sigblock">
   <div class="name">Debra A. Canapp, DVM, DACVSMR, CCRT, CVA</div>
   <div class="role">Diplomate, American College of Veterinary Sports Medicine &amp; Rehabilitation</div>

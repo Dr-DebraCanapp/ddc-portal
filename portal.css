@@ -543,13 +543,6 @@
 }
 .tool-btn:hover { background: #1a1e1c; color: #fff; }
 .tool-btn.active { background: var(--clay); color: #fff; }
-.tool-btn-report {
-  background: var(--clay);
-  color: #fff;
-  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.18);
-}
-.tool-btn-report:hover { background: var(--clay-deep, #8c4f33); color: #fff; }
-.tool-btn-report .tool-glyph { color: #fff; }
 .tool-glyph {
   font-family: var(--serif);
   font-size: 22px;
@@ -611,11 +604,6 @@
   letter-spacing: 0.06em;
   pointer-events: none;
   animation: fadeOut 1.8s ease forwards;
-}
-.ann-saved.report {
-  background: rgba(24, 33, 28, 0.94);
-  box-shadow: inset 0 0 0 1px rgba(177,106,72,0.6);
-  animation: fadeOut 2.2s ease forwards;
 }
 @keyframes fadeOut {
   0% { opacity: 1; transform: translateY(0); }
@@ -1192,7 +1180,6 @@
   padding: 1px 6px;
   border-radius: 8px;
 }
-
 /* ============================================================
    UNREAD MESSAGE BADGE — shared by portal + reviewer
    ============================================================ */
@@ -1218,6 +1205,7 @@
 .rv-row.has-unread {
   box-shadow: inset 3px 0 0 var(--clay);
 }
+/* gentle attention pulse on first paint */
 @keyframes msgBadgePulse {
   0%   { box-shadow: 0 1px 3px rgba(140,79,51,0.3), 0 0 0 0 rgba(177,106,72,0.5); }
   70%  { box-shadow: 0 1px 3px rgba(140,79,51,0.3), 0 0 0 6px rgba(177,106,72,0); }
@@ -1226,11 +1214,6 @@
 @media (prefers-reduced-motion: no-preference) {
   .msg-badge { animation: msgBadgePulse 2.4s ease-out 2; }
 }
-
-/* ============================================================
-   CASE COMMENT THREAD — post-report Q&A (portal + reviewer)
-   ============================================================ */
-.case-comments-wrap { margin-top: 40px; }
 .rv-comments-wrap { margin-top: 48px; }
 
 .comment-thread {
@@ -1281,3 +1264,46 @@
   .ct-msg { max-width: 92%; }
   .ct-compose textarea { min-height: 132px; font-size: 16px; padding: 14px 16px; }
 }
+
+/* rush read option on the submission wizard */
+.rush-opt{display:flex;gap:12px;align-items:flex-start;margin:6px 0 4px;border:1px solid var(--rule-2);background:var(--paper);padding:14px 16px;cursor:pointer;font-size:12.5px;line-height:1.55;color:var(--ink-2)}
+.rush-opt:hover{border-color:var(--clay)}
+.rush-opt input{width:17px;height:17px;margin-top:1px;accent-color:var(--clay);flex-shrink:0}
+.rush-opt b{color:var(--ink)}
+
+/* ---- vet-side statements & payment history ---- */
+.pi-note{font-size:11.5px;line-height:1.55;color:var(--ink-3);margin:9px 0 11px}
+.pb-hist{margin-top:40px;border-top:1px solid var(--rule-2);padding-top:26px}
+.pb-hist-head{display:flex;flex-wrap:wrap;align-items:flex-start;justify-content:space-between;gap:20px;margin-bottom:16px}
+.pb-hist-head h3{font-family:var(--serif);font-size:26px;letter-spacing:-.01em;margin:4px 0 5px}
+.pb-hist-head p{font-size:12.5px;line-height:1.6;color:var(--ink-3);margin:0;max-width:56ch}
+.pb-hist-sum{display:flex;gap:24px}
+.pb-hist-sum>div{display:flex;flex-direction:column;gap:2px}
+.pb-hist-sum .k{font-size:9px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:var(--ink-4)}
+.pb-hist-sum b{font-family:var(--serif);font-size:22px}
+.pb-hist-sum b.due{color:var(--clay-deep)}
+.pb-stmt{border:1px solid var(--rule-2);background:var(--paper);padding:15px 17px;margin-bottom:11px}
+.pb-stmt.due{border-left:3px solid var(--clay)}
+.pb-stmt.paid{border-left:3px solid #1f8a5b}
+.pb-stmt.draft{border-style:dashed}
+.pb-stmt-top{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;padding-bottom:9px;border-bottom:1px solid var(--rule-2)}
+.pb-stmt-top .num{font-size:11.5px;letter-spacing:.1em;color:var(--clay-deep);font-weight:600}
+.pb-stmt-top .per{font-size:12.5px;color:var(--ink-2);margin-top:2px}
+.pb-stmt-top .right{text-align:right}
+.pb-stmt-top .amt{font-family:var(--serif);font-size:22px;letter-spacing:-.01em}
+.pb-stmt-top .sub{font-size:11px;color:var(--ink-4);margin-top:1px}
+.pb-reads{padding:8px 0 0}
+.pb-read{display:flex;justify-content:space-between;gap:14px;font-size:12px;color:var(--ink-3);padding:2px 0}
+.pb-read em{font-style:normal;color:var(--ink-4);font-size:11px;margin-left:5px}
+.pb-read b{font-variant-numeric:tabular-nums;color:var(--ink-2)}
+.pb-pays{border-top:1px solid var(--rule-2);margin-top:8px;padding-top:8px}
+.pb-pay{display:grid;grid-template-columns:1fr auto auto;gap:12px;font-size:12px;color:#1f8a5b;padding:2px 0}
+.pb-pay .d{color:var(--ink-4)}
+.pb-pay b{font-variant-numeric:tabular-nums}
+.pb-stmt-acts{display:flex;gap:8px;margin-top:11px}
+.pb-foot{font-size:11.5px;color:var(--ink-4);margin-top:14px}
+.pb-how{border:1px solid var(--rule-2);background:var(--cream);padding:14px 17px;margin-top:14px}
+.pb-how ol{margin:8px 0 0;padding-left:19px;display:grid;gap:5px}
+.pb-how li{font-size:12.5px;line-height:1.55;color:var(--ink-2)}
+.rush-note{display:block;margin-top:9px;padding:9px 12px;border-left:3px solid var(--clay);background:var(--cream);font-size:11.5px;line-height:1.6;color:var(--ink-2)}
+.rush-note b{color:var(--ink)}

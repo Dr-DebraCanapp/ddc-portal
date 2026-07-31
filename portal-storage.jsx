@@ -366,6 +366,12 @@ function addAccount({ email, password, name, clinic }) {
 /* ============================================================
    REPORTS (per-case structured report, stored on case object)
    ============================================================ */
+async function setCaseBilling(caseId, billing) {
+  const c = await getCase(caseId);
+  if (!c) return;
+  await putCase({ ...c, billService: billing.billService || null, rush: !!billing.rush, finalizedAt: new Date().toISOString() });
+}
+
 async function saveReport(caseId, report) {
   const c = await getCase(caseId);
   if (!c) return null;
@@ -387,7 +393,7 @@ async function addComment(caseId, { role, name, text }) {
   if (!c.comments) c.comments = [];
   c.comments.push({
     id: `CM-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-    role: role || 'vet',
+    role: role || 'vet',          // 'vet' | 'reviewer'
     name: name || 'Unknown',
     text: (text || '').trim(),
     ts: new Date().toISOString(),
@@ -400,57 +406,6 @@ async function getAllComments() {
   const out = [];
   cases.forEach(c => (c.comments || []).forEach(cm => out.push({ case_id: c.id, role: cm.role, ts: cm.ts })));
   return out;
-}
-
-/* ============================================================
-   REPORT FIGURES (annotated image snapshots attached to a case)
-   Each figure: { id, dataUrl (PNG base64), caption, sourceName, createdAt }
-   ============================================================ */
-async function addReportFigure(caseId, figure) {
-  const c = await getCase(caseId);
-  if (!c) return null;
-  c.reportFigures = c.reportFigures || [];
-  const fig = {
-    id: `FIG-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-    dataUrl: figure.dataUrl,
-    caption: figure.caption || '',
-    sourceName: figure.sourceName || '',
-    createdAt: new Date().toISOString(),
-  };
-  c.reportFigures.push(fig);
-  await putCase(c);
-  return fig;
-}
-async function getReportFigures(caseId) {
-  const c = await getCase(caseId);
-  return (c && c.reportFigures) || [];
-}
-async function updateReportFigure(caseId, figureId, patch) {
-  const c = await getCase(caseId);
-  if (!c || !c.reportFigures) return null;
-  c.reportFigures = c.reportFigures.map(f => f.id === figureId ? { ...f, ...patch } : f);
-  await putCase(c);
-  return c.reportFigures;
-}
-async function deleteReportFigure(caseId, figureId) {
-  const c = await getCase(caseId);
-  if (!c || !c.reportFigures) return null;
-  c.reportFigures = c.reportFigures.filter(f => f.id !== figureId);
-  await putCase(c);
-  return c.reportFigures;
-}
-async function moveReportFigure(caseId, figureId, dir) {
-  const c = await getCase(caseId);
-  if (!c || !c.reportFigures) return null;
-  const arr = c.reportFigures;
-  const i = arr.findIndex(f => f.id === figureId);
-  if (i < 0) return arr;
-  const j = dir === 'up' ? i - 1 : i + 1;
-  if (j < 0 || j >= arr.length) return arr;
-  [arr[i], arr[j]] = [arr[j], arr[i]];
-  c.reportFigures = arr;
-  await putCase(c);
-  return c.reportFigures;
 }
 
 async function saveInvoice(caseId, invoice) {
@@ -507,9 +462,8 @@ window.PortalDB = {
   storageEstimate, ensureSeeded, downloadBlob,
   getApplications, submitApplication, updateApplication,
   getAccounts, saveAccounts, addAccount,
-  saveReport, advanceTimeline, nowLabel,
+  saveReport, setCaseBilling, advanceTimeline, nowLabel,
   getComments, addComment, getAllComments,
-  addReportFigure, getReportFigures, updateReportFigure, deleteReportFigure, moveReportFigure,
   saveInvoice, setInvoicePaid,
   ensureSession: async () => true,
   async uploadFiles(caseId, recs, onProgress) {

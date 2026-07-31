@@ -10,8 +10,36 @@ const RC_KIND_LABELS = {
   history: 'History documents',
 };
 
-function CaseReviewView({ id, onBack, session }) {
+function CaseReviewView({ id, onBack, session, allCases, onBillingChange }) {
   const [c, setC] = rcUseState(null);
+  const [stmts, setStmts] = rcUseState({});
+  rcUseEffect(() => {
+    if (window.SchedCloud && window.SchedCloud.configured) {
+      window.SchedCloud.loadStatements().then(setStmts).catch(() => setStmts({}));
+    }
+  }, []);
+  /* Same billing model the scheduler uses — reads batched into monthly
+     statements per practice. */
+  const billing = rcUseMemo(() => {
+    if (!window.SchedEntities) return { entities: [], accounts: [] };
+    return window.SchedEntities.all([], allCases || [], stmts);
+  }, [allCases, stmts]);
+  const billWho = () => (session && (session.name || session.email)) || 'admin';
+  const persistStmt = (e, inv) => {
+    setStmts(prev => ({ ...prev, [e.id]: inv }));
+    if (window.SchedCloud && window.SchedCloud.configured) window.SchedCloud.saveStatement({ ...e, invoice: inv }).catch(() => {});
+    onBillingChange && onBillingChange();
+  };
+  const billingOn = {
+    issueInvoice: (e) => persistStmt(e, window.SchedBill.issue(window.SchedEntities.numbers(billing.entities), e, billWho())),
+    openPayment: (e) => setPayFor(e.id),
+    addPayment: (e, pay) => persistStmt(e, window.SchedBill.logged({ ...(e.invoice || {}), payments: [...((e.invoice && e.invoice.payments) || []), pay] }, billWho(), 'Payment ' + window.SCHED.money(pay.amount))),
+    removePayment: (e, pid) => persistStmt(e, window.SchedBill.logged({ ...e.invoice, payments: (e.invoice.payments || []).filter(p => p.id !== pid) }, billWho(), 'Payment removed')),
+    addCharge: (e, ch) => { const base = e.invoice || { charges: [], payments: [], audit: [] }; persistStmt(e, window.SchedBill.logged({ ...base, charges: [...(base.charges || []), ch] }, billWho(), window.SchedBill.chargeLabel(ch))); },
+    removeCharge: (e, cid) => persistStmt(e, window.SchedBill.logged({ ...e.invoice, charges: (e.invoice.charges || []).filter(x => x.id !== cid) }, billWho(), 'Adjustment removed')),
+    writeOff: (e, off) => persistStmt(e, window.SchedBill.logged({ ...e.invoice, writtenOff: off }, billWho(), off ? 'Balance written off' : 'Reinstated')),
+  };
+  const [payFor, setPayFor] = rcUseState(null);
   const [files, setFiles] = rcUseState([]);
   const [kind, setKind] = rcUseState('dicom');
   const [seededDemo, setSeededDemo] = rcUseState(false);
@@ -108,12 +136,16 @@ function CaseReviewView({ id, onBack, session }) {
 
         {/* RIGHT — report builder */}
         <aside className="rv-case-right">
-          <ReportBuilder c={c} session={session} onSaved={load} />
+          <ReportBuilder c={c} session={session} onSaved={load} billingEntities={billing.entities} billingOn={billingOn} />
+      {payFor && window.PaymentModal && (() => {
+        const en = billing.entities.find(x => x.id === payFor);
+        return en ? <window.PaymentModal entity={en} onSave={(e2, p) => { billingOn.addPayment(e2, p); setPayFor(null); }} onClose={() => setPayFor(null)} /> : null;
+      })()}
         </aside>
       </div>
 
       <div className="rv-comments-wrap">
-        <window.CommentThread caseId={c.id} role="reviewer" name={(session && session.name) || 'Dr. Canapp'} srcLang={c.lang} />
+        <window.CommentThread caseId={c.id} role="reviewer" name={(session && session.name) || 'Dr. Canapp'} />
       </div>
 
       {viewerState && (
@@ -122,7 +154,7 @@ function CaseReviewView({ id, onBack, session }) {
             caseId={c.id}
             files={viewerState.files}
             initialFileIndex={viewerState.idx}
-            onClose={() => { setViewerState(null); load(); }}
+            onClose={() => setViewerState(null)}
           />
         </div>
       )}
@@ -207,7 +239,7 @@ function ClinicalBlock({ c }) {
     <div className="rv-clinical">
       <div>
         <div className="rv-section-eyebrow">Presenting complaint</div>
-        <p className="rv-clinical-text rv-clinical-lead" data-mt-vet2en data-mt-lang={c.lang}>{c.complaint}</p>
+        <p className="rv-clinical-text rv-clinical-lead">{c.complaint}</p>
         {c.duration && <div className="rv-clinical-meta">Duration: {c.duration}</div>}
       </div>
       {c.sites && c.sites.length > 0 && (
@@ -221,7 +253,7 @@ function ClinicalBlock({ c }) {
       {c.examFindings && (
         <div>
           <div className="rv-section-eyebrow">Exam findings</div>
-          <p className="rv-clinical-text" data-mt-vet2en data-mt-lang={c.lang}>{c.examFindings}</p>
+          <p className="rv-clinical-text">{c.examFindings}</p>
         </div>
       )}
       {c.medications && (
@@ -233,7 +265,7 @@ function ClinicalBlock({ c }) {
       {c.priorImaging && (
         <div>
           <div className="rv-section-eyebrow">History notes</div>
-          <p className="rv-clinical-text" data-mt-vet2en data-mt-lang={c.lang}>{c.priorImaging}</p>
+          <p className="rv-clinical-text">{c.priorImaging}</p>
         </div>
       )}
     </div>
@@ -292,7 +324,7 @@ function ReviewerFileTile({ file, onOpen }) {
 /* ============================================================
    REPORT BUILDER (sticky right rail)
    ============================================================ */
-function ReportBuilder({ c, session, onSaved }) {
+function ReportBuilder({ c, session, onSaved, billingEntities, billingOn }) {
   const initial = c.report || {};
   const [findings, setFindings] = rcUseState(initial.findings || '');
   const [impression, setImpression] = rcUseState(initial.impression || '');
@@ -351,15 +383,19 @@ function ReportBuilder({ c, session, onSaved }) {
     setShowInvoice(true);
   };
 
-  const doFinalize = async (invoice) => {
+  /* Finalizing records WHAT the read costs; the money is taken on the
+     practice's monthly statement, not per case. */
+  const doFinalize = async (billing) => {
     setFinalizing(true);
+    if (billing) {
+      try { await window.PortalDB.setCaseBilling(c.id, billing); } catch (e) { /* non-fatal */ }
+    }
     await window.PortalDB.saveReport(c.id, {
       findings, impression, recommendations,
       finalized: true,
       signedBy: 'Debra A. Canapp, DVM, DACVSMR, CCRT, CVA',
       signedAt: new Date().toISOString(),
     });
-    if (invoice) await window.PortalDB.saveInvoice(c.id, invoice);
     await window.PortalDB.advanceTimeline(c.id, 'reported');
     setFinalizing(false);
     setShowInvoice(false);
@@ -385,22 +421,6 @@ function ReportBuilder({ c, session, onSaved }) {
     if (!w) return;
     w.document.write(window.buildReportHTML(c, { findings, impression, recommendations, signedBy: session.name, draft: !isFinalized }));
     w.document.close();
-  };
-
-  const figures = (c.reportFigures || []);
-  const refreshFigures = () => { onSaved && onSaved(); };
-  const setCaption = async (figId, caption) => {
-    await window.PortalDB.updateReportFigure(c.id, figId, { caption });
-    refreshFigures();
-  };
-  const removeFigure = async (figId) => {
-    if (!confirm('Remove this figure from the report?')) return;
-    await window.PortalDB.deleteReportFigure(c.id, figId);
-    refreshFigures();
-  };
-  const moveFigure = async (figId, dir) => {
-    await window.PortalDB.moveReportFigure(c.id, figId, dir);
-    refreshFigures();
   };
 
   return (
@@ -453,46 +473,6 @@ function ReportBuilder({ c, session, onSaved }) {
         />
       </div>
 
-      <div className="rv-figures">
-        <div className="rv-figures-head">
-          <label>Annotated figures</label>
-          <span className="rv-figures-count">{figures.length}</span>
-        </div>
-        {figures.length === 0 ? (
-          <div className="rv-figures-empty">
-            Open an image in the viewer, mark it up with arrows, text, or measurements, then use <strong>★ Add to report</strong> to attach it here. Attached figures appear in the report the referring veterinarian receives.
-          </div>
-        ) : (
-          <div className="rv-figures-list">
-            {figures.map((fig, i) => (
-              <div key={fig.id} className="rv-figure">
-                <div className="rv-figure-thumb">
-                  <img src={fig.dataUrl} alt={`Figure ${i + 1}`} />
-                  <span className="rv-figure-num">Fig. {i + 1}</span>
-                </div>
-                <div className="rv-figure-body">
-                  <input
-                    className="rv-figure-caption"
-                    defaultValue={fig.caption}
-                    placeholder="Add a caption (optional)…"
-                    disabled={isLocked}
-                    onBlur={e => { if (e.target.value !== fig.caption) setCaption(fig.id, e.target.value); }}
-                  />
-                  <div className="rv-figure-meta">{fig.sourceName || 'Annotated image'}</div>
-                </div>
-                {!isLocked && (
-                  <div className="rv-figure-actions">
-                    <button className="rv-figure-btn" onClick={() => moveFigure(fig.id, 'up')} disabled={i === 0} title="Move up">↑</button>
-                    <button className="rv-figure-btn" onClick={() => moveFigure(fig.id, 'down')} disabled={i === figures.length - 1} title="Move down">↓</button>
-                    <button className="rv-figure-btn rm" onClick={() => removeFigure(fig.id)} title="Remove figure">×</button>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
       <div className="rv-report-sig">
         <div className="rv-sig-line">{isFinalized && c.report ? c.report.signedBy : 'Debra A. Canapp, DVM, DACVSMR, CCRT, CVA'}</div>
         <div className="rv-sig-sub">Diplomate, American College of Veterinary Sports Medicine & Rehabilitation</div>
@@ -522,42 +502,14 @@ function ReportBuilder({ c, session, onSaved }) {
         )}
       </div>
 
-      {isFinalized && c.invoice && (
-        <div className="rv-invoice-block">
-          <div className="rv-invoice-top">
-            <div>
-              <div className="rv-section-eyebrow">Invoice</div>
-              <div className="rv-invoice-num">{c.invoice.number}</div>
-            </div>
-            <span className={`rv-pay-pill ${c.invoice.status === 'paid' ? 'paid' : 'unpaid'}`}>
-              {c.invoice.status === 'paid' ? '✓ Paid' : 'Unpaid'}
-            </span>
-          </div>
-          <div className="rv-invoice-lines">
-            {(c.invoice.lines || []).map((l, i) => (
-              <div key={i} className="rv-invoice-line">
-                <span className="ln">{l.site || l.label}</span>
-                <span className="amt">{window.money(l.amount)}</span>
-              </div>
-            ))}
-            <div className="rv-invoice-line total">
-              <span className="ln">Total</span>
-              <span className="amt">{window.money(c.invoice.total)}</span>
-            </div>
-          </div>
-          <div className="rv-invoice-actions">
-            <button className="btn btn-ghost btn-sm" onClick={viewInvoice}>View invoice</button>
-            <button className={`btn btn-sm ${c.invoice.status === 'paid' ? 'btn-ghost' : 'btn-clay'}`} onClick={togglePaid}>
-              {c.invoice.status === 'paid' ? 'Mark unpaid' : 'Mark paid'}
-            </button>
-          </div>
-        </div>
+      {isFinalized && window.CaseBillingBlock && (
+        <window.CaseBillingBlock c={c} entities={billingEntities} on={billingOn || {}} role="admin" />
       )}
 
       {showInvoice && (
-        <InvoiceModal
+        <window.ReadRateModal
           c={c}
-          finalizing={finalizing}
+          busy={finalizing}
           onCancel={() => setShowInvoice(false)}
           onConfirm={doFinalize}
         />
@@ -580,85 +532,6 @@ function ReportBuilder({ c, session, onSaved }) {
   );
 }
 
-/* ============================================================
-   INVOICE BUILDER MODAL — confirm line items at finalize
-   ============================================================ */
-function InvoiceModal({ c, onConfirm, onCancel, finalizing }) {
-  const services = window.SERVICES;
-  const buildDefault = () => {
-    const sites = (c.sites && c.sites.length) ? c.sites : [''];
-    const svc = services[0];
-    return sites.map(s => ({ serviceId: svc.id, label: svc.label, note: svc.note, site: s || '', amount: svc.amount }));
-  };
-  const [lines, setLines] = rcUseState(buildDefault);
-
-  const setLine = (i, patch) => setLines(lines.map((l, idx) => idx === i ? { ...l, ...patch } : l));
-  const pickService = (i, id) => {
-    const svc = services.find(s => s.id === id) || services[0];
-    setLine(i, { serviceId: svc.id, label: svc.label, note: svc.note, amount: svc.amount });
-  };
-  const addLine = () => {
-    const svc = services[0];
-    setLines([...lines, { serviceId: svc.id, label: svc.label, note: svc.note, site: '', amount: svc.amount }]);
-  };
-  const rmLine = (i) => setLines(lines.filter((_, idx) => idx !== i));
-  const total = lines.reduce((s, l) => s + Number(l.amount || 0), 0);
-
-  const confirm = () => {
-    const invoice = {
-      number: window.makeInvoiceNumber(c),
-      issuedAt: new Date().toISOString(),
-      lines: lines.map(l => ({ serviceId: l.serviceId, label: l.label, note: l.note, site: l.site, amount: Number(l.amount) || 0 })),
-      total,
-      status: 'unpaid',
-      paidAt: null,
-    };
-    onConfirm(invoice);
-  };
-
-  return (
-    <div className="rv-modal-overlay" onClick={onCancel}>
-      <div className="rv-invoice-modal" onClick={e => e.stopPropagation()}>
-        <div className="rv-section-eyebrow">Finalize &amp; invoice</div>
-        <h3 className="rv-modal-h">Confirm what&rsquo;s being billed</h3>
-        <p className="rv-modal-sub">
-          <strong>{c.patient}</strong> · {c.referringVet || '—'}{c.referringClinic ? ', ' + c.referringClinic : ''}.
-          One line per bilateral site — adjust, add, or remove before delivering.
-        </p>
-
-        <div className="rv-inv-builder">
-          <div className="rv-inv-builder-head">
-            <span>Service</span><span>Site / region (bilateral)</span><span>Amount</span><span></span>
-          </div>
-          {lines.map((l, i) => (
-            <div key={i} className="rv-inv-row">
-              <select className="form-select" value={l.serviceId} onChange={e => pickService(i, e.target.value)}>
-                {services.map(s => <option key={s.id} value={s.id}>{s.label} — {window.money(s.amount)}</option>)}
-              </select>
-              <input className="form-input" value={l.site} placeholder="e.g. Shoulders" onChange={e => setLine(i, { site: e.target.value })} />
-              <div className="rv-inv-amt">
-                <span className="cur">$</span>
-                <input className="form-input" type="number" min="0" step="1" value={l.amount} onChange={e => setLine(i, { amount: e.target.value })} />
-              </div>
-              <button className="rv-inv-rm" onClick={() => rmLine(i)} title="Remove line" disabled={lines.length === 1}>×</button>
-            </div>
-          ))}
-          <button className="rv-inv-add" onClick={addLine}>+ Add a site / line</button>
-        </div>
-
-        <div className="rv-inv-total"><span>Total due</span><strong>{window.money(total)}</strong></div>
-
-        <div className="rv-modal-actions">
-          <button className="btn btn-ghost" onClick={onCancel} disabled={finalizing}>Cancel</button>
-          <button className="btn btn-clay" onClick={confirm} disabled={finalizing || lines.length === 0}>
-            {finalizing ? 'Delivering…' : <>Finalize, invoice &amp; deliver <span className="arrow">→</span></>}
-          </button>
-        </div>
-        <p className="rv-inv-foot">Delivering finalizes the report (no further edits) and issues this invoice to the referring veterinarian.</p>
-      </div>
-    </div>
-  );
-}
 
 /* ============================================================
    REPORT — printable HTML  (legacy/unused — the live builder is

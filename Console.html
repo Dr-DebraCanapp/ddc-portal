@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Console · Dr. Debra Canapp</title>
+<meta name="robots" content="noindex, nofollow" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="styles.css" />
+<link rel="stylesheet" href="portal.css" />
+<link rel="stylesheet" href="reviewer.css" />
+<link rel="stylesheet" href="schedule.css" />
+<style>
+  /* ---- unified console — two clearly-marked worlds ---- */
+  :root { --remote: #0E7C8B; --inperson: var(--clay, #B16A48); }
+  .cx-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 26px; align-items: start; }
+  @media (max-width: 980px) { .cx-grid { grid-template-columns: 1fr; } }
+  .cx-col { border: 1px solid var(--rule-2, #e6e1d6); background: var(--paper, #faf7f0); }
+  .cx-col-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 18px 22px 14px; border-bottom: 2px solid; }
+  .cx-col.remote .cx-col-head { border-color: var(--remote); }
+  .cx-col.inperson .cx-col-head { border-color: var(--inperson); }
+  .cx-tag { font-size: 10px; font-weight: 700; letter-spacing: 0.2em; text-transform: uppercase; padding: 4px 10px; color: #fff; }
+  .cx-col.remote .cx-tag { background: var(--remote); }
+  .cx-col.inperson .cx-tag { background: var(--inperson); }
+  .cx-col-title { font-family: 'Cormorant Garamond', serif; font-size: 26px; line-height: 1.1; }
+  .cx-col-sub { font-size: 12px; color: var(--ink-3, #8a8f86); margin-top: 3px; }
+  .cx-stats { display: grid; grid-template-columns: repeat(3, 1fr); border-bottom: 1px solid var(--rule-2, #e6e1d6); }
+  .cx-stat { padding: 14px 16px; border-right: 1px solid var(--rule-2, #e6e1d6); }
+  .cx-stat:last-child { border-right: none; }
+  .cx-stat .n { font-family: 'Cormorant Garamond', serif; font-size: 30px; line-height: 1; }
+  .cx-stat .l { font-size: 10.5px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-3, #8a8f86); margin-top: 5px; font-weight: 600; }
+  .cx-stat.urgent .n { color: #c24444; }
+  .cx-list { padding: 6px 0; }
+  .cx-row { display: flex; align-items: center; gap: 12px; padding: 11px 22px; border-bottom: 1px solid var(--rule-2, #eee7da); font-size: 13.5px; text-decoration: none; color: var(--ink, #1f231f); }
+  .cx-row:last-child { border-bottom: none; }
+  .cx-row:hover { background: rgba(0,0,0,0.025); }
+  .cx-row .who { font-family: 'Cormorant Garamond', serif; font-size: 16.5px; min-width: 110px; }
+  .cx-row .what { flex: 1; color: var(--ink-2, #555); font-size: 12.5px; }
+  .cx-row .sw { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+  .cx-pill { font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase; font-weight: 600; padding: 3px 9px; border: 1px solid; white-space: nowrap; }
+  .cx-col.remote .cx-pill { color: var(--remote); border-color: var(--remote); }
+  .cx-col.inperson .cx-pill { color: var(--inperson); border-color: var(--inperson); }
+  .cx-pill.warn { color: #c24444 !important; border-color: #c24444 !important; }
+  .cx-foot { padding: 14px 22px 18px; display: flex; gap: 10px; align-items: center; justify-content: space-between; border-top: 1px solid var(--rule-2, #e6e1d6); }
+  .cx-money { font-size: 12.5px; color: var(--ink-2, #555); }
+  .cx-money strong { font-family: 'Cormorant Garamond', serif; font-size: 18px; }
+  .cx-go { font-size: 12.5px; font-weight: 600; letter-spacing: 0.04em; text-decoration: none; padding: 9px 16px; color: #fff; }
+  .cx-col.remote .cx-go { background: var(--remote); }
+  .cx-col.inperson .cx-go { background: var(--inperson); }
+  .cx-empty { padding: 22px; font-size: 13px; color: var(--ink-3, #8a8f86); }
+  .cx-today { display: flex; gap: 20px; flex-wrap: wrap; align-items: center; border: 1px solid var(--rule-2, #e6e1d6); border-left: 4px solid var(--ink, #1f231f); background: var(--paper, #faf7f0); padding: 14px 20px; margin-bottom: 26px; font-size: 13.5px; }
+  .cx-today .d { font-family: 'Cormorant Garamond', serif; font-size: 19px; }
+  .cx-today .item strong { color: var(--ink); }
+  .cx-today .dot { color: var(--ink-4, #b9b3a5); }
+  .cx-tabs { display: flex; gap: 0; margin-bottom: 24px; border-bottom: 1px solid var(--rule-2, #e6e1d6); }
+  .cx-tab { font: inherit; font-size: 13.5px; font-weight: 600; letter-spacing: 0.04em; background: none; border: none; border-bottom: 3px solid transparent; padding: 10px 18px; cursor: pointer; color: var(--ink-3, #8a8f86); }
+  .cx-tab.active { color: var(--ink, #1f231f); border-bottom-color: var(--clay, #B16A48); }
+  .cx-tab .ct { display: inline-block; min-width: 18px; text-align: center; margin-left: 7px; font-size: 11px; padding: 1px 6px; border-radius: 10px; background: #c24444; color: #fff; }
+  .cx-col.admin .cx-col-head { border-color: var(--ink, #1f231f); }
+  .cx-col.admin .cx-tag { background: var(--ink, #1f231f); }
+  .cx-col.admin .cx-pill { color: var(--ink-2, #555); border-color: var(--ink-4, #b9b3a5); }
+  .cx-col.admin .cx-go { background: var(--ink, #1f231f); }
+  .cx-admin-stack { display: grid; gap: 22px; }
+  .cx-deskline { font-size: 13px; color: var(--ink-2, #555); cursor: pointer; border: none; background: none; font-family: inherit; padding: 0; text-decoration: underline; text-underline-offset: 3px; }
+</style>
+</head>
+<body data-screen-label="Admin Console">
+  <div id="root"></div>
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script src="config.js"></script>
+  <script src="schedule-cloud.js"></script>
+  <script type="text/babel">
+    const { useState, useEffect } = React;
+    const Cloud = window.SchedCloud;
+    const money = (n) => '$' + Math.round(Number(n) || 0).toLocaleString('en-US');
+    const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const fmtDay = (s) => { const [y,m,d] = String(s).split('T')[0].split('-').map(Number); return `${MONTHS[m-1]} ${d}`; };
+
+    function Bar({ profile }) {
+      return (
+        <header className="rv-bar">
+          <div className="rv-bar-inner">
+            <a href="Console.html" className="rv-brand">
+              <img src="assets/logo-mark.png" alt="" onError={e => { e.target.style.display = 'none'; }} />
+              <div>
+                <div className="rv-brand-name">Console</div>
+                <div className="rv-brand-sub">Dr. Debra Canapp · Everything in one place</div>
+              </div>
+            </a>
+            <nav className="rv-nav">
+              <a className="rv-nav-link active" href="Console.html">Home</a>
+              <a className="rv-nav-link" href="reviewer.html">Remote reads</a>
+              <a className="rv-nav-link" href="Schedule.html">In-person schedule</a>
+              <a className="rv-nav-link" href="Applications.html">Visit requests</a>
+            </nav>
+            <div className="rv-who">
+              <div className="rv-who-meta">
+                <div className="rv-who-name">{profile ? (profile.name || profile.email) : '—'}</div>
+                <div className="rv-who-role">Admin</div>
+              </div>
+              <button className="rv-logout" onClick={() => Cloud.signOut()}>Sign out</button>
+            </div>
+          </div>
+        </header>
+      );
+    }
+
+    function SignIn({ onIn }) {
+      const [email, setEmail] = useState(''); const [pw, setPw] = useState('');
+      const [busy, setBusy] = useState(false); const [err, setErr] = useState('');
+      const go = async (e) => { e.preventDefault(); setBusy(true); setErr(''); try { await Cloud.signIn(email.trim(), pw); onIn(); } catch (ex) { setErr(ex.message); setBusy(false); } };
+      return (
+        <div className="rv-page">
+          <main className="rv-main" style={{ maxWidth: 440, paddingTop: '12vh' }}>
+            <div className="rv-head" style={{ textAlign: 'center', marginBottom: 24 }}>
+              <img src="assets/logo-mark.png" alt="" style={{ width: 56, height: 56, objectFit: 'contain' }} onError={e => { e.target.style.display = 'none'; }} />
+              <div className="rv-eyebrow" style={{ marginTop: 10 }}>Admin console</div>
+              <h2 className="rv-h">One sign-in. Everything.</h2>
+              <p className="rv-sub">Remote reads and in-person clinical work, side by side.</p>
+            </div>
+            <form onSubmit={go} style={{ border: '1px solid var(--rule-2, #e6e1d6)', padding: 24, background: 'var(--paper, #faf7f0)' }}>
+              <div className="form-row"><label className="form-label">Email</label><input className="form-input" type="email" required autoFocus value={email} onChange={e => setEmail(e.target.value)} /></div>
+              <div className="form-row" style={{ marginTop: 10 }}><label className="form-label">Password</label><input className="form-input" type="password" required value={pw} onChange={e => setPw(e.target.value)} /></div>
+              {err && <div style={{ color: '#c24444', fontSize: 13, marginTop: 10 }}>{err}</div>}
+              <button className="btn btn-clay" type="submit" disabled={busy} style={{ width: '100%', marginTop: 16 }}>{busy ? 'Signing in…' : 'Sign in'}</button>
+            </form>
+          </main>
+        </div>
+      );
+    }
+
+    function Console() {
+      const [phase, setPhase] = useState('boot'); // boot | signin | denied | ready | error
+      const [view, setView] = useState('work'); // work | admin
+      const [err, setErr] = useState('');
+      const [profile, setProfile] = useState(null);
+      const [D, setD] = useState(null);
+
+      const load = async () => {
+        try {
+          const prof = await Cloud.profile();
+          if (!prof) { setPhase('signin'); return; }
+          if (prof.role !== 'reviewer' && prof.role !== 'admin') { setPhase('denied'); return; }
+          const sb = Cloud.client;
+          const todayIso = new Date().toISOString().slice(0, 10);
+          const [cases, days, pats, incoming, reqs] = await Promise.all([
+            sb.from('cases').select('id, patient, status, submitted, referring_clinic, invoice').order('submitted', { ascending: false }),
+            sb.from('sched_days').select('*').order('date'),
+            sb.from('sched_patients').select('id, day_id, cancelled, rate'),
+            sb.from('sched_incoming_studies').select('id, status, patient_name, description, clinic_id, received_at'),
+            sb.from('sched_visit_requests').select('id, hospital, city, state, contact, status, submitted_at'),
+          ]);
+          for (const r of [cases, days, pats, incoming, reqs]) if (r.error) throw new Error(r.error.message);
+          setProfile(prof);
+          setD({ cases: cases.data, days: days.data, pats: pats.data, incoming: incoming.data, reqs: reqs.data, todayIso });
+          setPhase('ready');
+        } catch (ex) { setErr(ex.message || String(ex)); setPhase('error'); }
+      };
+      useEffect(() => {
+        (async () => {
+          if (!Cloud || !Cloud.configured) { setErr('Supabase is not configured (config.js).'); setPhase('error'); return; }
+          const s = await Cloud.session();
+          if (!s) { setPhase('signin'); return; }
+          load();
+        })();
+        // live: refresh when either world changes
+        if (Cloud && Cloud.configured) return Cloud.subscribe(() => load());
+      }, []);
+
+      if (phase === 'signin') return <SignIn onIn={load} />;
+      if (phase === 'boot') return <div className="rv-page"><main className="rv-main" style={{ paddingTop: '14vh', textAlign: 'center' }}><p className="rv-sub">Gathering everything…</p></main></div>;
+      if (phase === 'denied') return <div className="rv-page"><main className="rv-main" style={{ paddingTop: '14vh', textAlign: 'center' }}><h2 className="rv-h">Admins only.</h2><p className="rv-sub">Referring vets: <a href="index.html">remote-read portal</a>. Hospitals: <a href="Schedule.html">scheduling</a>.</p></main></div>;
+      if (phase === 'error') return <div className="rv-page"><main className="rv-main" style={{ paddingTop: '14vh', textAlign: 'center' }}><h2 className="rv-h">Couldn't load.</h2><p className="rv-sub" style={{ color: '#c24444' }}>{err}</p></main></div>;
+
+      /* ---- remote reads ---- */
+      const cs = D.cases;
+      const rSubmitted = cs.filter(c => c.status === 'submitted');
+      const rReview = cs.filter(c => c.status === 'review');
+      const rReported = cs.filter(c => c.status === 'reported');
+      const rOutstanding = cs.reduce((s, c) => s + (c.invoice && c.invoice.status !== 'paid' ? (c.invoice.total || 0) : 0), 0);
+      const rQueue = [...rSubmitted, ...rReview].slice(0, 5);
+
+      /* ---- in-person ---- */
+      const dayPats = (id) => D.pats.filter(p => p.day_id === id && !p.cancelled);
+      const RATE = { initial: 1200, recheck: 1000 };
+      const dayTotal = (id) => dayPats(id).reduce((s, p) => s + (RATE[p.rate] || 1200), 0);
+      const upcoming = D.days.filter(d => d.date >= D.todayIso && d.status !== 'available');
+      const pending = D.days.filter(d => d.status === 'submitted');
+      const openDays = D.days.filter(d => d.status === 'available');
+      const unroutedList = D.incoming.filter(s => s.status === 'unrouted');
+      const unrouted = unroutedList.length;
+      const pendingReqList = D.reqs.filter(r => r.status === 'pending');
+      const pendingReqs = pendingReqList.length;
+      const adminCount = pending.length + unrouted + pendingReqs;
+      const iOutstanding = D.days.reduce((s, d) => s + (d.invoice && d.invoice.status !== 'paid' ? dayTotal(d.id) : 0), 0);
+      const todayDay = D.days.find(d => d.date === D.todayIso && d.status !== 'available');
+      const nextDays = upcoming.slice(0, 5);
+
+      const now = new Date();
+      const statusLabel = { submitted: 'New', review: 'In review', reported: 'Reported' };
+      const dayLabel = { booked: 'Roster building', submitted: 'Awaiting approval', confirmed: 'Confirmed', completed: 'Completed' };
+
+      return (
+        <div className="rv-page">
+          <Bar profile={profile} />
+          <main className="rv-main">
+            <div className="rv-head">
+              <div className="rv-eyebrow">Console · {now.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}</div>
+              <h2 className="rv-h">Good {now.getHours() < 12 ? 'morning' : now.getHours() < 17 ? 'afternoon' : 'evening'}, {String(profile.name || '').split(' ')[0] || 'Dr. Canapp'}.</h2>
+              <p className="rv-sub">Both practices at a glance — <span style={{ color: 'var(--remote)', fontWeight: 600 }}>remote reads</span> and <span style={{ color: 'var(--inperson)', fontWeight: 600 }}>in-person clinical days</span>. Operational to-dos live on the admin desk.</p>
+            </div>
+
+            <div className="cx-tabs">
+              <button className={`cx-tab ${view === 'work' ? 'active' : ''}`} onClick={() => setView('work')}>Dr. Canapp's day</button>
+              <button className={`cx-tab ${view === 'admin' ? 'active' : ''}`} onClick={() => setView('admin')}>Admin desk{adminCount > 0 && <span className="ct">{adminCount}</span>}</button>
+            </div>
+
+            {view === 'work' && <React.Fragment>
+            <div className="cx-today">
+              <span className="d">Today</span>
+              <span className="item"><strong>{rSubmitted.length + rReview.length}</strong> remote read{rSubmitted.length + rReview.length === 1 ? '' : 's'} in the queue</span>
+              <span className="dot">·</span>
+              <span className="item">{todayDay ? <><strong>Clinic day today</strong> — {dayPats(todayDay.id).length} patient{dayPats(todayDay.id).length === 1 ? '' : 's'}</> : 'No in-person visit today'}</span>
+              {adminCount > 0 && <React.Fragment><span className="dot">·</span><button className="cx-deskline" onClick={() => setView('admin')}>{adminCount} item{adminCount === 1 ? '' : 's'} waiting on the admin desk →</button></React.Fragment>}
+            </div>
+
+            <div className="cx-grid">
+              {/* ============ REMOTE READS ============ */}
+              <section className="cx-col remote">
+                <div className="cx-col-head">
+                  <div>
+                    <div className="cx-col-title">Remote reads</div>
+                    <div className="cx-col-sub">Second-opinion DICOM reviews · referring vets · $350/$300 reads</div>
+                  </div>
+                  <span className="cx-tag">Remote</span>
+                </div>
+                <div className="cx-stats">
+                  <div className={`cx-stat ${rSubmitted.length ? 'urgent' : ''}`}><div className="n">{rSubmitted.length}</div><div className="l">New cases</div></div>
+                  <div className="cx-stat"><div className="n">{rReview.length}</div><div className="l">In review</div></div>
+                  <div className="cx-stat"><div className="n">{rReported.length}</div><div className="l">Reported</div></div>
+                </div>
+                {rQueue.length === 0
+                  ? <div className="cx-empty">Queue is clear — no cases awaiting review.</div>
+                  : <div className="cx-list">
+                      {rQueue.map(c => (
+                        <a key={c.id} className="cx-row" href="reviewer.html">
+                          <span className="who">{c.patient}</span>
+                          <span className="what">{c.id} · {c.referring_clinic || ''}</span>
+                          <span className={`cx-pill ${c.status === 'submitted' ? 'warn' : ''}`}>{statusLabel[c.status] || c.status}</span>
+                        </a>
+                      ))}
+                    </div>}
+                <div className="cx-foot">
+                  <span className="cx-money">Outstanding <strong>{money(rOutstanding)}</strong></span>
+                  <a className="cx-go" href="reviewer.html">Open reviewer console →</a>
+                </div>
+              </section>
+
+              {/* ============ IN-PERSON ============ */}
+              <section className="cx-col inperson">
+                <div className="cx-col-head">
+                  <div>
+                    <div className="cx-col-title">In-person clinical</div>
+                    <div className="cx-col-sub">Traveling MSK ultrasound days · hospital bookings · $1,200/$1,000 scans</div>
+                  </div>
+                  <span className="cx-tag">In-person</span>
+                </div>
+                <div className="cx-stats">
+                  <div className="cx-stat"><div className="n">{upcoming.length}</div><div className="l">Days ahead</div></div>
+                  <div className="cx-stat"><div className="n">{upcoming.reduce((s, d) => s + dayPats(d.id).length, 0)}</div><div className="l">Patients booked</div></div>
+                  <div className="cx-stat"><div className="n">{openDays.length}</div><div className="l">Open days</div></div>
+                </div>
+                {nextDays.length === 0
+                  ? <div className="cx-empty">Nothing booked ahead — {openDays.length ? `${openDays.length} open day${openDays.length === 1 ? '' : 's'} published.` : 'publish an open day to get started.'}</div>
+                  : <div className="cx-list">
+                      {nextDays.map(d => (
+                        <a key={d.id} className="cx-row" href="Schedule.html">
+                          <span className="who">{fmtDay(d.date)}</span>
+                          <span className="what">{(d.clinic_id || '—').replace(/-/g, ' ')} · {dayPats(d.id).length} pt{dayPats(d.id).length === 1 ? '' : 's'} · {money(dayTotal(d.id))}</span>
+                          <span className={`cx-pill ${d.status === 'submitted' ? 'warn' : ''}`}>{dayLabel[d.status] || d.status}</span>
+                        </a>
+                      ))}
+                    </div>}
+                <div className="cx-foot">
+                  <span className="cx-money">Outstanding <strong>{money(iOutstanding)}</strong></span>
+                  <a className="cx-go" href="Schedule.html">Open schedule →</a>
+                </div>
+              </section>
+            </div>
+            </React.Fragment>}
+
+            {view === 'admin' && <div className="cx-admin-stack">
+              {/* ---- roster approvals ---- */}
+              <section className="cx-col admin">
+                <div className="cx-col-head">
+                  <div>
+                    <div className="cx-col-title">Roster approvals</div>
+                    <div className="cx-col-sub">Hospitals have submitted these clinic-day rosters — review and approve in the schedule</div>
+                  </div>
+                  <span className="cx-tag">In-person · Admin</span>
+                </div>
+                {pending.length === 0
+                  ? <div className="cx-empty">Nothing waiting — all submitted rosters are handled.</div>
+                  : <div className="cx-list">
+                      {pending.map(d => (
+                        <a key={d.id} className="cx-row" href="Schedule.html">
+                          <span className="who">{fmtDay(d.date)}</span>
+                          <span className="what">{(d.clinic_id || '—').replace(/-/g, ' ')} · {dayPats(d.id).length} pt{dayPats(d.id).length === 1 ? '' : 's'} · {money(dayTotal(d.id))}</span>
+                          <span className="cx-pill warn">Review →</span>
+                        </a>
+                      ))}
+                    </div>}
+              </section>
+
+              {/* ---- DICOM routing ---- */}
+              <section className="cx-col admin">
+                <div className="cx-col-head">
+                  <div>
+                    <div className="cx-col-title">DICOM studies to route</div>
+                    <div className="cx-col-sub">Auto-sent from clinic machines — file each to a patient record or a remote-read case</div>
+                  </div>
+                  <span className="cx-tag">Imaging · Admin</span>
+                </div>
+                {unroutedList.length === 0
+                  ? <div className="cx-empty">Inbox is clear — every received study has been routed.</div>
+                  : <div className="cx-list">
+                      {unroutedList.map(s => (
+                        <a key={s.id} className="cx-row" href="Schedule.html">
+                          <span className="who">{s.patient_name || 'Unknown'}</span>
+                          <span className="what">{s.description || 'DICOM study'}{s.clinic_id ? ` · ${String(s.clinic_id).replace(/-/g, ' ')}` : ''}</span>
+                          <span className="cx-pill warn">Route →</span>
+                        </a>
+                      ))}
+                    </div>}
+              </section>
+
+              {/* ---- visit requests ---- */}
+              <section className="cx-col admin">
+                <div className="cx-col-head">
+                  <div>
+                    <div className="cx-col-title">Visit requests</div>
+                    <div className="cx-col-sub">Hospitals asking for an in-person day — approving creates their account</div>
+                  </div>
+                  <span className="cx-tag">Intake · Admin</span>
+                </div>
+                {pendingReqList.length === 0
+                  ? <div className="cx-empty">No pending requests — new ones from the intake form land here.</div>
+                  : <div className="cx-list">
+                      {pendingReqList.map(r => (
+                        <a key={r.id} className="cx-row" href="Applications.html">
+                          <span className="who" style={{ minWidth: 0 }}>{r.hospital}</span>
+                          <span className="what">{[r.city, r.state].filter(Boolean).join(', ')}{r.contact ? ` · ${r.contact}` : ''}</span>
+                          <span className="cx-pill">Review →</span>
+                        </a>
+                      ))}
+                    </div>}
+                <div className="cx-foot">
+                  <span className="cx-money">{pendingReqs} pending</span>
+                  <a className="cx-go" href="Applications.html">Open visit requests →</a>
+                </div>
+              </section>
+            </div>}
+          </main>
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<Console />);
+  </script>
+</body>
+</html>
