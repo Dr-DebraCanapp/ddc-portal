@@ -98,6 +98,7 @@
 
     function ApproveModal({ r, onClose, onDone }) {
       const [loginEmail, setLoginEmail] = useState(r.email);
+      const [emailed, setEmailed] = useState(false);
       const [pw, setPw] = useState(tempPassword());
       const [busy, setBusy] = useState(false);
       const [err, setErr] = useState('');
@@ -129,18 +130,64 @@
         setBusy(false);
       };
 
+      /* A real URL, not a filename — this gets pasted into an email. */
+      const portalBase = (((window.PORTAL_CONFIG || {}).payments || {}).portalUrl || window.location.origin).replace(/\/$/, '');
+      const signInUrl = portalBase + '/Schedule.html';
+
+      const welcomeBody = [
+        `Dear ${r.vet || 'Doctor'},`,
+        '',
+        `Thank you for your interest in hosting an in-person diagnostic musculoskeletal ultrasound clinic. ${r.hospital} is now set up, and you can sign in to build your patient roster.`,
+        '',
+        'YOUR SIGN-IN',
+        `Web address:        ${signInUrl}`,
+        `Email:              ${loginEmail}`,
+        `Temporary password: ${pw}`,
+        '',
+        'Please change the password after your first sign-in.',
+        '',
+        'WHAT TO DO NEXT',
+        '1. Sign in at the address above.',
+        '2. You will see the clinic days we have opened for you. Choose one and click Book this day.',
+        '3. Add each patient you would like seen — name, breed, owner, your details as the referring vet, and the regions to be scanned. You can upload their records and radiographs and we will read them before we arrive.',
+        '4. When the roster is complete, click Submit for approval. We will confirm it and send you a day sheet.',
+        '',
+        'A FEW THINGS WORTH KNOWING',
+        '· Iliopsoas scans require sedation, as the patient is positioned in dorsal recumbency. Please tell us on the patient form if a patient cannot be sedated.',
+        '· Patients should be fasted where sedation is likely.',
+        '· Add patients as far ahead as you can — it helps us plan the day and review imaging in advance.',
+        '',
+        'Any questions at all, just reply to this message.',
+        '',
+        'With thanks,',
+        'Dr. Debra Canapp, DVM, DACVSMR',
+        'info@DrDebraCanapp.com',
+      ].join('\n');
+
+      const emailWelcome = () => {
+        const subject = `Your hospital sign-in — in-person MSK ultrasound clinics with Dr. Debra Canapp`;
+        window.location.href = `mailto:${encodeURIComponent(loginEmail)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(welcomeBody)}`;
+        setEmailed(true);
+      };
+
       if (done) {
         return (
           <div className="rv-modal-shell" onClick={onClose}>
             <div className="rv-modal" onClick={e => e.stopPropagation()}>
               <div className="rv-modal-eyebrow">§ Hospital set up</div>
               <h3 className="rv-modal-h">{r.hospital} is now a hospital account.</h3>
-              <p className="rv-modal-body">Send these sign-in details to <strong>{r.vet}</strong> and ask them to change the password after first sign-in:</p>
-              <div className="ax-cred"><div className="k">Sign-in page</div><div className="mono">Schedule.html (your site's /Schedule)</div></div>
+              <p className="rv-modal-body">Send {r.vet || 'them'} their sign-in and a walk-through of what to do next. The email below is already written.</p>
+              <div className="ax-cred"><div className="k">Sign-in page</div><div className="mono">{signInUrl}</div></div>
               <div className="ax-cred"><div className="k">Email</div><div className="mono">{loginEmail}</div></div>
               <div className="ax-cred"><div className="k">Temporary password</div><div className="mono">{pw}</div></div>
-              <p className="rv-modal-body">Next: finalize their profile (color, bookable weekdays, case cap) under <strong>Schedule → Clinics</strong>, then publish an open day held for them.</p>
-              <div className="rv-modal-actions"><a className="btn btn-clay" href="Schedule.html">Go to Schedule →</a><button className="btn btn-ghost" onClick={onClose}>Done</button></div>
+              <details className="ax-preview"><summary>What the welcome email says</summary><pre>{welcomeBody}</pre></details>
+              <p className="rv-modal-body">Then finalize their profile (color, bookable weekdays, case cap) under <strong>Schedule → Clinics</strong> and publish an open day held for them.</p>
+              <div className="rv-modal-actions">
+                <button className="btn btn-ghost" onClick={onClose}>Done</button>
+                <a className="btn btn-ghost" href="Schedule.html">Go to Schedule →</a>
+                <button className="btn btn-clay" onClick={emailWelcome}>{emailed ? 'Open email again' : 'Email their sign-in →'}</button>
+              </div>
+              {emailed && <p className="rv-inv-foot" style={{ marginTop: 10 }}>Draft opened. The temporary password is in the message — send it and they can sign in straight away.</p>}
             </div>
           </div>
         );
@@ -246,6 +293,7 @@
       );
     }
 
+    window.__ApproveModal = ApproveModal; // test hook
     ReactDOM.createRoot(document.getElementById('root')).render(<VisitRequests />);
   </script>
 </body>
