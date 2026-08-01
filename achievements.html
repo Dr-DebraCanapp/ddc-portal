@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Achievements · Dr. Debra Canapp</title>
+<meta name="description" content="Peer-reviewed publications, conference proceedings, and editorial work by Dr. Debra Canapp, DACVSMR, on canine musculoskeletal ultrasound, sports-related soft-tissue injury, and rehabilitation." />
+<link rel="canonical" href="https://drdebracanapp.com/achievements.html" />
+<meta name="robots" content="index, follow" />
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content="Dr. Debra Canapp" />
+<meta property="og:title" content="Achievements · Dr. Debra Canapp" />
+<meta property="og:description" content="Peer-reviewed publications, conference proceedings, and editorial work by Dr. Debra Canapp, DACVSMR, on canine musculoskeletal ultrasound, sports-related soft-tissue injury, and rehabilitation." />
+<meta property="og:url" content="https://drdebracanapp.com/achievements.html" />
+<meta property="og:image" content="https://drdebracanapp.com/assets/share-card.png" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="Achievements · Dr. Debra Canapp" />
+<meta name="twitter:description" content="Peer-reviewed publications, conference proceedings, and editorial work by Dr. Debra Canapp, DACVSMR, on canine musculoskeletal ultrasound, sports-related soft-tissue injury, and rehabilitation." />
+<meta name="twitter:image" content="https://drdebracanapp.com/assets/share-card.png" />
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400;1,500&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="concept-shared.css" />
+<style>
+/* numbers */
+.nums{background:var(--paper-deep);}
+.numgrid{display:grid;grid-template-columns:repeat(4,1fr);border-top:1px solid var(--ink);border-bottom:1px solid var(--ink);margin-top:56px;}
+.num{padding:40px 32px;border-left:1px solid var(--rule);}
+.num:first-child{border-left:none;}
+.num .v{font-family:var(--serif);font-size:clamp(56px,7vw,108px);line-height:0.9;letter-spacing:-0.03em;}
+.num .l{font-family:var(--serif);font-style:italic;font-size:18px;margin-top:18px;color:var(--ink-2);max-width:240px;line-height:1.3;}
+.num .f{font-family:var(--mono);font-size:10px;letter-spacing:0.16em;text-transform:uppercase;color:var(--ink-3);margin-top:12px;}
+@media (max-width:900px){.numgrid{grid-template-columns:repeat(2,1fr);}.num{border-left:none;border-top:1px solid var(--rule);}}
+/* filter chips */
+.chips{display:flex;justify-content:space-between;align-items:center;gap:24px;flex-wrap:wrap;margin-top:48px;}
+.chips .set{display:flex;gap:8px;flex-wrap:wrap;}
+.chip{padding:8px 14px;border:1px solid var(--rule-2);background:var(--paper);color:var(--ink-2);font-size:12px;letter-spacing:0.04em;transition:all 0.2s;}
+.chip.active{border-color:var(--ink);background:var(--ink);color:var(--paper);}
+.sorts{display:flex;align-items:center;gap:10px;font-size:12px;color:var(--ink-3);}
+.sorts .sk{font-family:var(--mono);font-size:10.5px;letter-spacing:0.16em;text-transform:uppercase;}
+.sorts button{padding:6px 10px;color:var(--ink-3);}
+.sorts button.on{text-decoration:underline;color:var(--ink);}
+/* publications */
+#publist{border-top:1px solid var(--ink);margin-top:32px;}
+.pub{display:grid;grid-template-columns:120px 1fr 160px;gap:36px;padding:28px 0;border-bottom:1px solid var(--rule);align-items:start;}
+.pub .y{font-family:var(--serif);font-size:clamp(40px,3.5vw,56px);line-height:1;letter-spacing:-0.02em;}
+.pub .m{font-family:var(--mono);font-size:10px;letter-spacing:0.16em;text-transform:uppercase;color:var(--ink-3);margin-top:8px;}
+.pub h3{font-family:var(--serif);font-weight:400;font-size:clamp(22px,1.9vw,28px);line-height:1.25;letter-spacing:-0.012em;margin:0;text-wrap:balance;}
+.pub .au{margin-top:10px;color:var(--ink-2);font-size:13.5px;}
+.pub .jn{font-family:var(--serif);font-style:italic;margin-top:8px;font-size:15px;color:var(--ink-3);}
+.pub .nt{margin-top:12px;color:var(--ink-3);max-width:680px;font-size:14px;}
+.pub .tag{text-align:right;}
+.pub .tag span{display:inline-block;padding:4px 10px;border:1px solid var(--rule-2);font-size:10px;letter-spacing:0.18em;text-transform:uppercase;color:var(--clay);font-weight:500;}
+.pubfine{margin-top:32px;color:var(--ink-3);max-width:760px;font-size:13.5px;line-height:1.6;}
+.pubempty{padding:56px 0;text-align:center;font-family:var(--serif);font-style:italic;font-size:22px;color:var(--ink-3);}
+@media (max-width:900px){.pub{grid-template-columns:1fr;gap:12px;}.pub .tag{text-align:left;}}
+/* service */
+.svcgrid{display:grid;grid-template-columns:repeat(3,1fr);border:1px solid rgba(244,239,229,0.2);margin-top:56px;}
+.svcell{padding:36px 32px;border-right:1px solid rgba(244,239,229,0.16);}
+.svcell:last-child{border-right:none;}
+.svcell .k{font-family:var(--mono);font-size:10.5px;letter-spacing:0.18em;text-transform:uppercase;color:var(--tan);}
+.svcell p{color:rgba(244,239,229,0.82);margin:18px 0 0;font-size:15px;line-height:1.65;}
+@media (max-width:900px){.svcgrid{grid-template-columns:1fr;}.svcell{border-right:none;}.svcell + .svcell{border-top:1px solid rgba(244,239,229,0.16);}}
+/* CTA */
+.acta{text-align:center;}
+.acta h2{margin-left:auto;margin-right:auto;}
+.acta .kick{justify-content:center;}
+.acta .ctas{margin-top:40px;display:flex;gap:14px;justify-content:center;flex-wrap:wrap;}
+</style>
+</head>
+<body>
+
+<header class="nav-bar">
+  <div class="nav-inner">
+    <a href="index.html" class="nav-brand" aria-label="Dr. Debra Canapp">
+      <img src="assets/logo-mark.png" alt="" class="nav-logo" />
+      <span><span class="nav-name">Dr. Debra Canapp</span><span class="nav-sub">Veterinary Sports Medicine</span></span>
+    </a>
+    <nav class="nav-links">
+      <a href="index.html">Home</a><a href="services.html">Services</a><a href="course.html">Course</a><a href="network.html">Network</a><a href="lectures.html">Lectures</a><a href="achievements.html" class="active">Achievements</a><a href="about.html">About</a>
+    </nav>
+    <div class="nav-right">
+      <a href="https://portal.drdebracanapp.com" class="nav-portal"><svg width="11" height="11" viewBox="0 0 12 12" fill="none" aria-hidden="true" style="margin-right:6px;"><rect x="2.5" y="5.5" width="7" height="5" rx="0.5" stroke="currentColor" stroke-width="1.1"></rect><path d="M4 5.5V4a2 2 0 0 1 4 0v1.5" stroke="currentColor" stroke-width="1.1"></path></svg>Portal login</a>
+      <span class="nav-divider" aria-hidden="true"></span>
+      <a href="mailto:info@drdebracanapp.com" class="btn btn-sm">Contact</a>
+    </div>
+  </div>
+</header>
+
+<section class="phero" data-screen-label="Achievements Hero">
+  <div class="container">
+    <div class="kick fx"><span class="no">§ 06</span> Achievements · A career in print</div>
+    <h1 class="lines">
+      <span class="ln"><span>Two decades. A growing</span></span>
+      <span class="ln"><span>body of <em>evidence.</em></span></span>
+    </h1>
+    <p class="lede fx d1">Peer-reviewed publications, conference proceedings, and editorial contributions — the scholarly trail behind the practice. Dr. Canapp's research focuses on canine musculoskeletal ultrasound, sports-related soft tissue injury, and the rehabilitation that gets the patient back to work.</p>
+  </div>
+</section>
+
+<!-- ============ NUMBERS ============ -->
+<section class="sec nums" data-screen-label="By The Numbers">
+  <div class="container">
+    <div class="kick fx"><span class="no">§ 01</span> By the numbers</div>
+    <h2 class="lines"><span class="ln"><span>A measurable contribution</span></span><span class="ln"><span>to <em>the field.</em></span></span></h2>
+    <div class="numgrid fx d1">
+      <div class="num"><div class="v" data-count="21">0</div><div class="l">Peer-reviewed &amp; clinical publications</div><div class="f">Selected listing below</div></div>
+      <div class="num"><div class="v" data-count="6">0</div><div class="l">Anatomical regions covered in research</div><div class="f">From iliopsoas to carpus</div></div>
+      <div class="num"><div class="v"><span data-count="20">0</span>+</div><div class="l">Years of clinical research</div><div class="f">Continuously since 2005</div></div>
+      <div class="num"><div class="v"><span data-count="30">0</span>+</div><div class="l">Countries with course graduates</div><div class="f">Global teaching footprint</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ PUBLICATIONS ============ -->
+<section class="sec" data-screen-label="Publications">
+  <div class="container">
+    <div class="kick fx"><span class="no">§ 02</span> Publications</div>
+    <h2 class="lines"><span class="ln"><span>The papers.</span></span></h2>
+    <p class="sub fx d1">A chronological listing of Dr. Canapp's peer-reviewed publications, chapters, and proceedings — filterable by anatomical region or research topic.</p>
+    <div class="chips">
+      <div class="set" id="chipset"></div>
+      <div class="sorts"><span class="sk">Sort</span><button data-sort="newest" class="on">Newest first</button><button data-sort="oldest">Oldest first</button></div>
+    </div>
+    <div id="publist"></div>
+    <p class="pubfine">Listing reflects publications where Dr. Canapp is an author or named contributor. For complete citation details, reprint requests, or the full bibliographic record, contact <a href="mailto:info@drdebracanapp.com">info@drdebracanapp.com</a>.</p>
+  </div>
+</section>
+
+<!-- ============ SERVICE ============ -->
+<section class="sec dark" data-screen-label="Service">
+  <div class="container">
+    <div class="kick fx"><span class="no">§ 03</span> Beyond publication</div>
+    <h2 class="lines"><span class="ln"><span>Peer review, board service,</span></span><span class="ln"><span>and <em>mentorship.</em></span></span></h2>
+    <p class="sub fx d1">Dr. Canapp serves as a peer reviewer for veterinary journals, has served on the ACVSMR specialty board's exam committee, and has mentored a generation of sports medicine residents and rehabilitation interns.</p>
+    <div class="svcgrid fx d1">
+      <div class="svcell"><div class="k">Peer review</div><p>Editorial reviewer for Clinician's Brief (2013–present), DVM 360 (2012–present), and Veterinary Surgery (2008–present).</p></div>
+      <div class="svcell"><div class="k">ACVSMR specialty board service</div><p>Canine Chair of the ACVSMR Exam Committee (2013–2015) and Exam Committee member (2012–2015) — the diplomate certification body for veterinary sports medicine &amp; rehabilitation.</p></div>
+      <div class="svcell"><div class="k">Mentorship &amp; education</div><p>Personally grades course homework and mentors trained clinicians through the remote-read pathway. Faculty advisor to numerous ACVSMR residents and VOSM sports medicine interns over the past decade.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ CTA ============ -->
+<section class="sec acta" data-screen-label="CTA">
+  <div class="container">
+    <div class="kick fx"><span class="no">§ 04</span> Continuing scholarship</div>
+    <h2 class="lines"><span class="ln"><span>Reprint requests, research collaboration,</span></span><span class="ln"><span><em>invitations welcome.</em></span></span></h2>
+    <div class="ctas fx d1">
+      <a href="mailto:info@drdebracanapp.com" class="btn">Email Dr. Canapp <span class="arrow">→</span></a>
+      <a href="lectures.html" class="btn ghost">Upcoming lectures</a>
+    </div>
+  </div>
+</section>
+
+<footer data-screen-label="Footer" id="footer">
+  <div class="container">
+    <div class="footer-petowner">
+      <div style="max-width:680px;">
+        <div class="eyebrow">Are you a pet owner?</div>
+        <p>Looking for a musculoskeletal ultrasound for your dog? Find a clinician trained by Dr. Canapp near you.</p>
+      </div>
+      <a href="network.html" class="btn clay" style="white-space:nowrap;">See the network <span class="arrow">→</span></a>
+    </div>
+    <div class="footer-grid">
+      <div class="footer-col">
+        <img class="logo" src="assets/logo-mark.png" alt="Dr. Debra Canapp" />
+        <p class="blurb">Veterinary sports medicine and diagnostic musculoskeletal ultrasound.</p>
+      </div>
+      <div class="footer-col">
+        <h4>Practice</h4>
+        <ul>
+          <li><a href="services.html">Services</a></li>
+          <li><a href="services.html">Refer a case</a></li>
+          <li><a href="services.html">Remote reads</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Education</h4>
+        <ul>
+          <li><a href="course.html">The Course</a></li>
+          <li><a href="course.html#curriculum">Modules</a></li>
+          <li><a href="course.html#pricing">Enroll</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Contact</h4>
+        <ul>
+          <li><a href="mailto:info@drdebracanapp.com">info@drdebracanapp.com</a></li>
+          <li style="margin-top:12px;"><a href="mailto:info@drdebracanapp.com">Send a message via the contact form</a></li>
+          <li style="margin-top:12px;"><a href="https://portal.drdebracanapp.com" style="color:var(--tan);">Referral portal · sign in →</a></li>
+          <li style="margin-top:12px;"><a href="https://portal.drdebracanapp.com/Schedule.html" style="color:var(--tan);">Hospital scheduling · sign in →</a></li>
+          <li style="margin-top:8px;"><a href="https://portal.drdebracanapp.com/Console.html" style="color:var(--ink-4,#8a8f86);font-size:12px;">Staff sign-in →</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <div>© 2026 Dr. Debra A. Canapp</div>
+      <div>DVM · CCRT · CVA · Diplomate, ACVSMR</div>
+    </div>
+  </div>
+</footer>
+
+<script>
+const PUBS=[
+{y:2024,m:'August',a:'Turner KF, Canapp SO Jr, Canapp DA, Sutton AM, Canapp A, Jimenez IA, Gerardi J',t:'Client-based evaluation of the effects of localized vibration therapy on pain and mobility scores in dogs with radiographic bilateral hip dysplasia',j:'Frontiers in Veterinary Science, 11:1424373',k:'Rehabilitation'},
+{y:2023,m:'July',a:'Sack D, Canapp DA, Canapp SO, Majeski S, Curry J, Sutton A, Cullen R',t:'Iliopsoas strain demographics, concurrent injuries, and grade determined by musculoskeletal ultrasound in 72 agility dogs',j:'Canadian Journal of Veterinary Research, 87(3): 196–201',k:'Iliopsoas'},
+{y:2023,m:'March',a:'Tsoi H, Canapp DA, Canapp SO',t:'Ultrasonographic detection of cranial cruciate ligament pathology in canine stifles without cranio-caudal instability',j:'Veterinary Evidence',k:'Stifle'},
+{y:2021,a:'Toijala TM, Canapp DA, Canapp SO',t:'Ultrasonography findings in the proximal sciatic nerve and deep gluteal muscles in 29 dogs with suspected sciatic neuritis',j:'Frontiers in Veterinary Science, 8:704904',k:'MSK Ultrasound'},
+{y:2021,a:'Stokes R, Canapp DA, Canapp SO, Ferrell J',t:'Evaluation of carpal injuries with diagnostic musculoskeletal ultrasound in the canine',j:'Journal of the American Veterinary Medical Association (JAVMA)',k:'Carpus'},
+{y:2019,m:'June',a:'Canapp SO, Canapp DA, Chun N',t:'New Treatment Options for Agility Dogs with Arthritis',j:'Clean Run Magazine',k:'Clinical Writing'},
+{y:2018,a:'Carr BJ, Canapp SO, Petrovitch JL, Campana D, Canapp DA, Leasure CS',t:'Retrospective Study on External Canine Limb Prosthesis used in 24 Patients',j:'Veterinary Evidence, 3(1)',k:'Sports Medicine'},
+{y:2018,a:'McDougal RA, Canapp SO, Canapp DA',t:'Ultrasonographic findings in 41 dogs treated with bone marrow aspirate concentrate and platelet-rich plasma for a supraspinatus tendinopathy: A retrospective study',j:'Frontiers in Veterinary Science, 5:98',k:'Regenerative Medicine'},
+{y:2017,a:'Cullen R, Canapp DA, Dycus D, Carr B, Ibrahim V, Canapp SO',t:'Clinical evaluation of iliopsoas strain with findings from diagnostic musculoskeletal ultrasound in agility performance canines — 73 cases',j:'Veterinary Evidence, 2(2)',k:'Iliopsoas',n:'Seminal paper on MSK ultrasound for iliopsoas evaluation.'},
+{y:2017,m:'September',a:'Gamble LJ, Canapp DA, Canapp SO',t:'Evaluation of Achilles Tendon Injuries with Findings from Diagnostic Musculoskeletal Ultrasound in Canines — 43 Cases',j:'Veterinary Evidence, 2(3)',k:'Tarsus'},
+{y:2017,a:'Canapp DA, Canapp SO',t:'Tendinopathies — diagnostic ultrasound and regenerative considerations',j:'2nd ECVSMR Scientific Meeting Proceedings',k:'Tendinopathy'},
+{y:2016,m:'July',a:'Carr BJ, Canapp SO, Canapp DA, Gamble LJ, Dycus D',t:'Adhesive Capsulitis in Eight Dogs: Diagnosis and Management',j:'Veterinary Sciences, 3:55',k:'Tendinopathy'},
+{y:2016,a:'Canapp SO, Canapp DA, Ibrahim V, Carr BJ, Cox C, Barrett JG',t:'The use of adipose-derived progenitor cells and platelet-rich plasma combination for the treatment of supraspinatus tendinopathy in 55 dogs: A retrospective study',j:'Frontiers in Veterinary Science (DOI: 10.3389/fvets.2016.00061)',k:'Regenerative Medicine'},
+{y:2016,a:'Canapp SO, Canapp DA, Carr BJ, Cox C, Barrett JG',t:'Supraspinatus Tendinopathy in 327 Dogs: A Retrospective Study',j:'Veterinary Evidence, 1(3)',k:'Tendinopathy'},
+{y:2013,a:'Canapp DA',t:'Forelimb Rehabilitation Techniques — chapter in Canine Sports Medicine and Rehabilitation (Zink & Van Dyke, eds.)',j:'Blackwell Publishing — textbook',k:'Book Chapter'},
+{y:2013,m:'August',a:'Canapp DA',t:'Canine Osteoarthritis',j:"Clinician's Brief",k:'Clinical Writing'},
+{y:2013,m:'December',a:'Canapp DA',t:'Diagnostic Musculoskeletal Ultrasound for the Canine Athlete',j:'Clean Run Magazine',k:'Clinical Writing'},
+{y:2010,m:'December',a:'Canapp DA',t:'Hydrotherapy for the Canine Athlete',j:'Clean Run Magazine',k:'Clinical Writing'},
+{y:2009,a:'Canapp SO, Acciani D, Hulse D, Schulz K, Canapp DA',t:'Rehabilitation Therapy for the Elbow in Dogs',j:'Veterinary Surgery, 38:300–306',k:'Rehabilitation',n:'Foundational peer-reviewed paper on canine elbow rehabilitation.'},
+{y:2008,m:'July',a:'Canapp DA, Zink C',t:'Prevention of Injury',j:'Clean Run Magazine',k:'Clinical Writing'},
+{y:2007,a:'Canapp DA',t:'Modalities in Veterinary Rehabilitation',j:'Clinical Techniques in Small Animal Practice, 22: 195–205',k:'Rehabilitation',n:'Early peer-reviewed survey of canine rehabilitation modalities.'}
+];
+const TOPICS=['All','MSK Ultrasound','Iliopsoas','Stifle','Carpus','Tarsus','Tendinopathy','Regenerative Medicine','Rehabilitation','Sports Medicine','Book Chapter','Clinical Writing'];
+let topic='All',sortDir='newest';
+const chipset=document.getElementById('chipset'),publist=document.getElementById('publist');
+function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;');}
+function renderChips(){chipset.innerHTML=TOPICS.map(t=>'<button class="chip'+(t===topic?' active':'')+'" data-t="'+t+'">'+t+'</button>').join('');}
+function renderPubs(){
+  let list=PUBS.filter(p=>topic==='All'||p.k===topic).slice().sort((a,b)=>sortDir==='newest'?b.y-a.y:a.y-b.y);
+  publist.innerHTML=list.length?list.map(p=>'<article class="pub"><div><div class="y">'+p.y+'</div>'+(p.m?'<div class="m">'+p.m+'</div>':'')+'</div><div><h3>'+esc(p.t)+'</h3><div class="au">'+esc(p.a)+'</div><div class="jn">'+esc(p.j)+'</div>'+(p.n?'<p class="nt">'+esc(p.n)+'</p>':'')+'</div><div class="tag"><span>'+p.k+'</span></div></article>').join(''):'<div class="pubempty">No publications match this topic — yet.</div>';
+}
+chipset.addEventListener('click',e=>{const b=e.target.closest('.chip');if(!b)return;topic=b.dataset.t;renderChips();renderPubs();});
+document.querySelectorAll('.sorts button').forEach(b=>b.addEventListener('click',()=>{sortDir=b.dataset.sort;document.querySelectorAll('.sorts button').forEach(x=>x.classList.toggle('on',x===b));renderPubs();}));
+renderChips();renderPubs();
+const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target);}}),{threshold:0.15});
+document.querySelectorAll('.lines,.fx').forEach(el=>io.observe(el));
+const cio=new IntersectionObserver(es=>es.forEach(e=>{
+  if(!e.isIntersecting)return;cio.unobserve(e.target);
+  const el=e.target,to=+el.dataset.count,t0=performance.now(),dur=1400;
+  (function tick(t){const p=Math.min((t-t0)/dur,1);el.textContent=Math.round(to*(1-Math.pow(1-p,3)));if(p<1)requestAnimationFrame(tick);})(t0);
+}),{threshold:0.5});
+document.querySelectorAll('[data-count]').forEach(el=>cio.observe(el));
+</script>
+<script src="mobile-nav.js"></script>
+<script src="i18n.js"></script>
+</body>
+</html>

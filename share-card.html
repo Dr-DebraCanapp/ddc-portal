@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Share card · Dr. Debra Canapp</title>
+<meta name="robots" content="noindex, nofollow" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400&family=Instrument+Sans:wght@400;500&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet" />
+<style>
+:root{--ink:#1c1a17;--ink-2:#4a453d;--paper:#f4efe5;--clay:#a87b5c;--tan:#8a7f6d;--mono:'JetBrains Mono',monospace}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#e8e2d6;display:flex;align-items:flex-start;justify-content:flex-start;padding:0;font-family:'Instrument Sans',sans-serif}
+.card{width:900px;height:472px;background:var(--ink);color:var(--paper);position:relative;overflow:hidden;display:grid;grid-template-columns:1.15fr .85fr}
+.left{padding:46px 42px 40px;display:flex;flex-direction:column;justify-content:space-between;position:relative;z-index:2}
+.eb{font-family:var(--mono);font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--clay);display:flex;align-items:center;gap:8px}
+.eb::before{content:"";width:22px;height:1px;background:var(--clay)}
+h1{font-family:'Fraunces',serif;font-weight:300;font-size:43px;line-height:1.06;letter-spacing:-.015em;margin-top:18px;max-width:390px}
+h1 em{font-style:italic;color:var(--clay)}
+.sub{font-size:14.5px;line-height:1.5;color:rgba(244,239,229,.72);max-width:330px;margin-top:16px}
+.foot{display:flex;align-items:flex-end;justify-content:space-between;gap:20px}
+.who{font-family:var(--mono);font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:rgba(244,239,229,.6);line-height:1.9}
+.who b{display:block;font-family:'Instrument Sans',sans-serif;font-weight:500;font-size:12.5px;letter-spacing:.02em;text-transform:none;color:var(--paper)}
+.dom{font-family:var(--mono);font-size:10px;letter-spacing:.1em;color:var(--clay);white-space:nowrap}
+.right{position:relative;overflow:hidden}
+.right img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:62% 24%}
+.right::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,var(--ink) 0%,rgba(28,26,23,.72) 26%,rgba(28,26,23,.06) 68%,rgba(28,26,23,0) 100%)}
+.rule{position:absolute;left:42px;right:42px;bottom:84px;height:1px;background:rgba(244,239,229,.14);z-index:2}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="left">
+    <div>
+      <div class="eb">Diagnostic MSK Ultrasound</div>
+      <h1>Seeing what the films <em>can't show you.</em></h1>
+      <p class="sub">Canine musculoskeletal ultrasound — by referral, by remote read, and taught to veterinarians worldwide.</p>
+    </div>
+    <div class="foot">
+      <div class="who"><b>Dr. Debra A. Canapp</b>DVM · CCRT · CVA · DACVSMR</div>
+      <div class="dom">drdebracanapp.com</div>
+    </div>
+  </div>
+  <div class="right"><img src="assets/probe-doberman-black.png" alt="Diagnostic musculoskeletal ultrasound of a canine patient" /></div>
+  <div class="rule"></div>
+</div>
+</body>
+</html>

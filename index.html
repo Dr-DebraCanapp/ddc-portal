@@ -3,43 +3,488 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Referral Portal · Dr. Debra Canapp</title>
+<title>Dr. Debra Canapp · Veterinary Sports Medicine & MSK Ultrasound</title>
+<meta name="description" content="Dr. Debra Canapp, DVM, DACVSMR — a pioneer in canine musculoskeletal (MSK) ultrasound. Diagnostic MSK ultrasound by referral, remote second-opinion reads, and an online course teaching the modality to veterinarians worldwide." />
+<link rel="canonical" href="https://drdebracanapp.com/" />
+<meta name="robots" content="index, follow" />
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content="Dr. Debra Canapp" />
+<meta property="og:title" content="Dr. Debra Canapp · Veterinary Sports Medicine &amp; MSK Ultrasound" />
+<meta property="og:description" content="Dr. Debra Canapp, DVM, DACVSMR — a pioneer in canine musculoskeletal (MSK) ultrasound. Diagnostic MSK ultrasound by referral, remote second-opinion reads, and an online course teaching the modality to veterinarians worldwide." />
+<meta property="og:url" content="https://drdebracanapp.com/" />
+<meta property="og:image" content="https://drdebracanapp.com/assets/share-card.png" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="Dr. Debra Canapp · Veterinary Sports Medicine &amp; MSK Ultrasound" />
+<meta name="twitter:description" content="Dr. Debra Canapp, DVM, DACVSMR — a pioneer in canine musculoskeletal (MSK) ultrasound. Diagnostic MSK ultrasound by referral, remote second-opinion reads, and an online course teaching the modality to veterinarians worldwide." />
+<meta name="twitter:image" content="https://drdebracanapp.com/assets/share-card.png" />
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"Person","name":"Dr. Debra A. Canapp","honorificPrefix":"Dr.","honorificSuffix":"DVM, CCRT, CVA, DACVSMR","jobTitle":"Diplomate, American College of Veterinary Sports Medicine and Rehabilitation","url":"https://drdebracanapp.com","image":"https://drdebracanapp.com/assets/debra-allyson.jpg","description":"Pioneer in canine musculoskeletal ultrasound and Diplomate of the ACVSMR — diagnostic MSK ultrasound, regenerative medicine, and veterinary education worldwide.","knowsAbout":["Canine musculoskeletal ultrasound","Veterinary sports medicine","Regenerative medicine","Rehabilitation therapy","Diagnostic imaging"],"sameAs":[]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"MedicalBusiness","name":"Dr. Debra Canapp — Veterinary Sports Medicine & MSK Ultrasound","url":"https://drdebracanapp.com","image":"https://drdebracanapp.com/assets/share-card.png","medicalSpecialty":"Veterinary Sports Medicine and Rehabilitation","description":"Diagnostic musculoskeletal ultrasound by referral, remote second-opinion reads, and ultrasound-guided regenerative injections for canine patients.","areaServed":"Worldwide","founder":{"@type":"Person","name":"Dr. Debra A. Canapp"}}</script>
+
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="styles.css" />
-<link rel="stylesheet" href="portal.css" />
-<link rel="stylesheet" href="schedule.css" />
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400;1,500&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+/* ============================================================
+   Dr. Debra Canapp — homepage.
+   Paper / cream / ink rhythm · clay action color · sharp corners
+   Cormorant Garamond + Inter + JetBrains Mono kickers
+   ============================================================ */
+:root{
+  --paper:#F4EFE5; --cream:#FBF8F1; --paper-deep:#E8E1D2;
+  --ink:#18211C; --ink-2:#2D3A2F; --ink-3:#5C6759; --ink-4:#8B9482;
+  --forest:#1F2A22; --sage:#7C8A6C; --tan:#C2A878; --clay:#B16A48; --clay-deep:#8C4F33;
+  --rule:rgba(24,33,28,0.12); --rule-inv:rgba(244,239,229,0.16);
+  --serif:'Cormorant Garamond',Georgia,serif;
+  --sans:'Inter',-apple-system,system-ui,sans-serif;
+  --mono:'JetBrains Mono',ui-monospace,monospace;
+}
+*,*::before,*::after{box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{margin:0;background:var(--ink);color:var(--ink);font-family:var(--sans);font-size:16px;line-height:1.6;-webkit-font-smoothing:antialiased;}
+img{display:block;max-width:100%;}
+a{color:var(--clay-deep);text-decoration:none;}
+a:hover{color:var(--clay);}
+::selection{background:var(--clay);color:var(--paper);}
+
+.container{max-width:1440px;margin:0 auto;padding:0 clamp(24px,5vw,72px);}
+.mono{font-family:var(--mono);}
+.kick{font-family:var(--mono);font-size:11.5px;letter-spacing:0.18em;text-transform:uppercase;color:var(--ink-3);display:flex;align-items:baseline;gap:14px;}
+.kick .no{color:var(--clay);}
+.inv .kick{color:rgba(244,239,229,0.6);}
+
+/* ---- nav — original site header ---- */
+.nav-bar{position:sticky;top:0;z-index:80;background:rgba(244,239,229,0.92);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-bottom:1px solid var(--rule);}
+.nav-inner{display:flex;align-items:center;gap:34px;height:84px;max-width:1440px;margin:0 auto;padding:0 clamp(24px,5vw,72px);}
+.nav-brand{display:flex;align-items:center;gap:14px;flex:0 0 auto;color:var(--ink);position:relative;z-index:2;}
+.nav-logo{height:50px;width:auto;transition:transform 460ms cubic-bezier(0.22,1,0.36,1),filter 300ms ease;transform-origin:left center;will-change:transform;}
+.nav-brand > span:nth-child(2){transition:opacity 220ms ease,transform 460ms cubic-bezier(0.22,1,0.36,1);}
+.nav-brand:hover .nav-logo{transform:translateY(2px) scale(2.1);filter:drop-shadow(0 14px 26px rgba(24,33,28,0.22));}
+.nav-brand:hover > span:nth-child(2){opacity:0;transform:translateX(-6px);}
+.nav-name{font-family:var(--serif);font-size:19px;letter-spacing:-0.01em;line-height:1.1;white-space:nowrap;}
+.nav-sub{font-size:9.5px;letter-spacing:0.18em;text-transform:uppercase;color:var(--ink-3);margin-top:3px;}
+.nav-links{display:flex;gap:26px;flex:1;justify-content:flex-start;}
+.nav-links a{font-size:13px;color:var(--ink-2);white-space:nowrap;position:relative;}
+.nav-links a:hover{color:var(--ink);}
+.nav-links a::after{content:'';position:absolute;left:0;right:0;bottom:-4px;height:1px;background:var(--clay);transform:scaleX(0);transform-origin:right;transition:transform 0.35s cubic-bezier(0.2,0.7,0.2,1);}
+.nav-links a:hover::after,.nav-links a.active::after{transform:scaleX(1);transform-origin:left;}
+.nav-links a.active{color:var(--ink);}
+.nav-right{margin-left:auto;display:flex;align-items:center;gap:14px;}
+.nav-portal{font-family:var(--mono);font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:var(--ink-3);display:inline-flex;align-items:center;border-bottom:1px solid transparent;transition:color 0.2s,border-color 0.2s;}
+.nav-portal:hover{color:var(--clay);border-bottom-color:var(--clay);}
+.nav-divider{width:1px;height:18px;background:var(--rule);}
+.btn-sm{padding:10px 16px;font-size:12px;}
+@media (max-width:1180px){.nav-brand > span:nth-child(2){display:none;}}
+@media (max-width:980px){.nav-links,.nav-portal,.nav-divider{display:none;}.nav-inner{height:68px;}}
+
+/* ---- buttons ---- */
+.btn{display:inline-flex;align-items:center;gap:10px;padding:15px 26px;font-size:13px;font-weight:500;letter-spacing:0.04em;border:1px solid var(--ink);background:var(--ink);color:var(--paper);transition:all 0.25s;}
+.btn:hover{background:var(--clay);border-color:var(--clay);color:var(--paper);}
+.btn.ghost{background:transparent;color:var(--ink);}
+.btn.ghost:hover{background:var(--ink);color:var(--paper);}
+.btn.inv{background:var(--paper);border-color:var(--paper);color:var(--ink);}
+.btn.inv:hover{background:var(--clay);border-color:var(--clay);color:var(--paper);}
+.btn.inv-ghost{background:transparent;border-color:rgba(244,239,229,0.4);color:var(--paper);}
+.btn.inv-ghost:hover{border-color:var(--paper);color:var(--paper);background:transparent;}
+.btn.clay{background:var(--clay);border-color:var(--clay);color:var(--paper);}
+.btn.clay:hover{background:var(--clay-deep);border-color:var(--clay-deep);}
+.arrow{font-family:var(--serif);font-size:17px;line-height:1;}
+
+/* ---- reveal primitives ---- */
+.lines .ln{display:block;overflow:hidden;padding:0.09em 0.04em 0.14em 0;margin:-0.09em -0.04em -0.14em 0;}
+.lines .ln span{display:block;transform:translateY(110%);transition:transform 1s cubic-bezier(0.22,1,0.36,1);}
+.lines.in .ln span{transform:translateY(0);}
+.lines .ln:nth-child(2) span{transition-delay:0.08s;}
+.lines .ln:nth-child(3) span{transition-delay:0.16s;}
+.fx{opacity:0;transition:opacity 0.9s ease;}
+.fx.in{opacity:1;}
+.fx.d1{transition-delay:0.15s;}.fx.d2{transition-delay:0.3s;}.fx.d3{transition-delay:0.45s;}
+.rule-x{height:1px;background:var(--rule);transform:scaleX(0);transform-origin:left;transition:transform 1.2s cubic-bezier(0.22,1,0.36,1);}
+.rule-x.in{transform:scaleX(1);}
+@media (prefers-reduced-motion:reduce){
+  .lines .ln span{transform:none;transition:none;}
+  .fx{opacity:1;transition:none;}
+  .rule-x{transform:none;transition:none;}
+}
+
+/* ============ HERO — full-bleed magazine cover (paper) ============ */
+.hero{position:relative;min-height:calc(100vh - 84px);background:var(--paper);color:var(--ink);overflow:hidden;display:flex;flex-direction:column;}
+.hero .photo{position:absolute;top:0;right:0;bottom:0;left:44%;}
+.hero .photo img{width:100%;height:100%;object-fit:cover;object-position:center 42%;}
+.hero .photo::after{content:'';position:absolute;inset:0;background:
+  linear-gradient(90deg,rgba(244,239,229,1) 0%,rgba(244,239,229,0.72) 16%,rgba(244,239,229,0.28) 34%,rgba(244,239,229,0) 52%),
+  linear-gradient(0deg,rgba(244,239,229,0.55) 0%,rgba(244,239,229,0) 26%);}
+@media (max-width:1000px){.hero{min-height:0;}.hero .photo{position:relative;left:0;height:44vh;}.hero .photo::after{background:linear-gradient(0deg,rgba(244,239,229,1) 0%,rgba(244,239,229,0) 26%);}.hero .inner{justify-content:flex-start;padding:34px clamp(24px,5vw,72px) 44px;}.hero h1{font-size:clamp(48px,13vw,74px);}.hero h1 .l2{padding-left:0;}.hero .lede{margin-top:22px;}.hero .ctas{margin-top:28px;}}
+.hero .inner{position:relative;z-index:3;flex:1;display:flex;flex-direction:column;justify-content:flex-end;padding:60px clamp(24px,5vw,72px) 56px;}
+.hero .kick{color:var(--ink-3);}
+.hero h1{font-family:var(--serif);font-weight:400;font-size:clamp(64px,10.5vw,190px);line-height:0.88;letter-spacing:-0.03em;margin:26px 0 0;}
+.hero h1 .l2{display:block;font-style:italic;font-weight:300;color:var(--clay);padding-left:0.55em;}
+.hero .lede{font-family:var(--serif);font-size:clamp(18px,1.6vw,23px);line-height:1.5;color:var(--ink-2);max-width:560px;margin:34px 0 0;}
+@media (min-width:1001px){.hero .lede{max-width:min(560px,38vw);}}
+.hero .ctas{display:flex;gap:14px;flex-wrap:wrap;margin-top:38px;}
+.hero .foot{position:relative;z-index:3;display:flex;align-items:center;justify-content:space-between;gap:24px;padding:20px clamp(24px,5vw,72px);border-top:1px solid var(--rule);background:var(--paper);font-family:var(--mono);font-size:10.5px;letter-spacing:0.16em;text-transform:uppercase;color:var(--ink-3);}
+.hero .foot .live{display:flex;align-items:center;gap:10px;}
+.hero .foot .live i{width:6px;height:6px;border-radius:50%;background:var(--clay);animation:blink 1.6s ease-in-out infinite;}
+@keyframes blink{0%,100%{opacity:1;}50%{opacity:0.25;}}
+@media (max-width:1000px){.hero .photo img{object-position:50% 22%;}}
+@media (prefers-reduced-motion:reduce){.hero .foot .live i{animation:none;}}
+
+/* ============ MARQUEE ============ */
+.marquee{background:var(--clay);color:var(--paper);overflow:hidden;padding:15px 0;white-space:nowrap;}
+.marquee .track{display:inline-flex;gap:56px;animation:mq 36s linear infinite;will-change:transform;}
+.marquee .it{font-family:var(--serif);font-style:italic;font-size:19px;letter-spacing:0.01em;display:inline-flex;align-items:center;gap:56px;}
+.marquee .it::after{content:'·';font-style:normal;opacity:0.6;}
+@keyframes mq{from{transform:translateX(0);}to{transform:translateX(-50%);}}
+@media (prefers-reduced-motion:reduce){.marquee .track{animation:none;}}
+
+/* ============ PURPOSE ============ */
+.purpose{background:var(--paper);padding:clamp(90px,12vw,170px) 0;}
+.purpose .grid{display:grid;grid-template-columns:220px 1fr;gap:40px;align-items:start;}
+.purpose h2{font-family:var(--serif);font-weight:400;font-size:clamp(38px,4.6vw,76px);line-height:1.04;letter-spacing:-0.02em;margin:0;max-width:1050px;text-wrap:balance;}
+.purpose h2 em{font-style:italic;font-weight:300;color:var(--clay);}
+.purpose .aside{margin-top:56px;display:grid;grid-template-columns:220px 1fr;gap:40px;}
+.purpose .aside p{font-size:17px;line-height:1.7;color:var(--ink-2);max-width:520px;margin:0;}
+@media (max-width:900px){.purpose .grid,.purpose .aside{grid-template-columns:1fr;gap:20px;}}
+
+/* ============ PILLARS ============ */
+.pillars{background:var(--paper);padding-bottom:clamp(90px,12vw,160px);}
+.pillars .wrap{display:grid;grid-template-columns:1fr 1fr;border:1px solid var(--rule);}
+.pillar{position:relative;padding:clamp(40px,4vw,64px);min-height:480px;display:flex;flex-direction:column;overflow:hidden;transition:background 0.35s;}
+.pillar + .pillar{border-left:1px solid var(--rule);}
+.pillar .mark{position:absolute;right:32px;top:38px;width:clamp(52px,5vw,78px);height:clamp(52px,5vw,78px);color:var(--ink);opacity:0.16;transition:opacity 0.35s,transform 0.5s cubic-bezier(0.22,1,0.36,1);}
+.pillar .mark svg{width:100%;height:100%;}
+.pillar.dark .mark{color:var(--paper);}
+.pillar:hover .mark{opacity:0.45;transform:translateY(-6px) rotate(-6deg);}
+.pillar h3{font-family:var(--serif);font-weight:400;font-size:clamp(34px,3.2vw,52px);letter-spacing:-0.015em;margin:22px 0 0;}
+.pillar p{font-size:16.5px;line-height:1.7;color:var(--ink-2);max-width:440px;margin:18px 0 0;}
+.pillar .go{margin-top:auto;padding-top:36px;display:inline-flex;align-items:center;gap:12px;font-size:13px;font-weight:500;letter-spacing:0.05em;text-transform:uppercase;color:var(--ink);}
+.pillar .go .arrow{transition:transform 0.3s;}
+.pillar:hover .go .arrow{transform:translateX(6px);}
+.pillar.light:hover{background:var(--cream);}
+.pillar.dark{background:var(--ink);color:var(--paper);}
+.pillar.dark p{color:rgba(244,239,229,0.78);}
+.pillar.dark .go{color:var(--paper);}
+.pillar.dark:hover{background:var(--forest);}
+.pillar .kick{margin:0;}
+.pillar.dark .kick{color:var(--tan);}
+@media (max-width:900px){.pillars .wrap{grid-template-columns:1fr;}.pillar + .pillar{border-left:none;border-top:1px solid var(--rule);}.pillar{min-height:auto;}}
+
+/* ============ REGIONS index ============ */
+.regions{background:var(--cream);padding:clamp(90px,12vw,160px) 0;position:relative;}
+.regions h2{font-family:var(--serif);font-weight:400;font-size:clamp(38px,4.2vw,68px);line-height:1.05;letter-spacing:-0.02em;margin:0 0 18px;max-width:900px;text-wrap:balance;}
+.regions .sub{max-width:520px;color:var(--ink-2);font-size:16.5px;line-height:1.7;}
+.reglist{margin-top:56px;border-top:1px solid var(--ink);}
+.reg{display:grid;grid-template-columns:90px 1fr auto;align-items:baseline;gap:24px;padding:26px 8px;border-bottom:1px solid var(--rule);color:var(--ink);position:relative;transition:padding 0.3s;}
+.reg .n{font-family:var(--mono);font-size:11.5px;letter-spacing:0.14em;color:var(--clay);}
+.reg .nm{font-family:var(--serif);font-weight:400;font-size:clamp(30px,3.4vw,54px);letter-spacing:-0.02em;line-height:1;transition:transform 0.35s cubic-bezier(0.22,1,0.36,1),color 0.3s;}
+.reg .ar{display:flex;gap:22px;font-family:var(--mono);font-size:10.5px;letter-spacing:0.12em;text-transform:uppercase;color:var(--ink-4);}
+.reg:hover .nm{transform:translateX(14px);color:var(--clay-deep);}
+.reg::after{content:'→';position:absolute;right:8px;top:50%;transform:translateY(-50%) translateX(-8px);font-family:var(--serif);font-size:22px;color:var(--clay);opacity:0;transition:all 0.3s;}
+.reg:hover::after{opacity:1;transform:translateY(-50%) translateX(0);}
+@media (max-width:800px){.reg{grid-template-columns:56px 1fr;}.reg .ar{display:none;}}
+/* floating hover image */
+#float{position:fixed;width:320px;height:220px;pointer-events:none;z-index:50;opacity:0;transition:opacity 0.25s;overflow:hidden;background:var(--paper-deep);box-shadow:0 30px 60px -20px rgba(24,33,28,0.35);}
+#float img{width:100%;height:100%;object-fit:cover;}
+#float .cap{position:absolute;left:0;right:0;bottom:0;padding:8px 12px;font-family:var(--mono);font-size:9.5px;letter-spacing:0.14em;text-transform:uppercase;color:var(--paper);background:linear-gradient(0deg,rgba(24,33,28,0.85),transparent);}
+@media (hover:none){#float{display:none;}}
+
+/* ============ COURSE ============ */
+.course{background:var(--ink);color:var(--paper);padding:clamp(90px,12vw,170px) 0;position:relative;overflow:hidden;}
+.course .cone{position:absolute;right:-120px;top:-80px;width:720px;height:720px;opacity:0.5;pointer-events:none;}
+.course .grid{display:grid;grid-template-columns:1.1fr 0.9fr;gap:clamp(48px,6vw,100px);align-items:center;position:relative;z-index:2;}
+.course h2{font-family:var(--serif);font-weight:400;font-size:clamp(38px,4.4vw,72px);line-height:1.04;letter-spacing:-0.02em;margin:24px 0 0;text-wrap:balance;}
+.course h2 em{font-style:italic;font-weight:300;color:var(--tan);}
+.course .lede{font-family:var(--serif);font-size:20px;line-height:1.55;color:rgba(244,239,229,0.82);max-width:540px;margin:26px 0 0;}
+.course .ctas{display:flex;gap:14px;flex-wrap:wrap;margin-top:40px;}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--rule-inv);border:1px solid var(--rule-inv);}
+.stat{background:var(--ink);padding:34px 30px;}
+.stat .v{font-family:var(--serif);font-size:clamp(44px,4.4vw,76px);line-height:1;letter-spacing:-0.02em;color:var(--paper);}
+.stat .v.sm{font-size:clamp(24px,2.4vw,36px);line-height:1.1;}
+.stat .l{font-family:var(--mono);font-size:10.5px;letter-spacing:0.16em;text-transform:uppercase;color:var(--tan);margin-top:14px;}
+@media (max-width:1000px){.course .grid{grid-template-columns:1fr;}}
+
+/* ============ CONTACT ============ */
+.contact{background:var(--paper);padding:clamp(100px,13vw,180px) 0;}
+.contact h2{font-family:var(--serif);font-weight:400;font-size:clamp(40px,5vw,84px);line-height:1.02;letter-spacing:-0.02em;margin:26px 0 0;max-width:1000px;text-wrap:balance;}
+.contact .email{display:inline-block;margin-top:46px;font-family:var(--serif);font-style:italic;font-weight:300;font-size:clamp(26px,3.6vw,58px);letter-spacing:-0.01em;color:var(--ink);border-bottom:1px solid var(--clay);padding-bottom:6px;transition:color 0.3s;}
+.contact .email:hover{color:var(--clay-deep);}
+.contact .meta{margin-top:56px;display:flex;gap:56px;flex-wrap:wrap;font-size:14px;color:var(--ink-3);}
+.contact .meta .m{max-width:280px;}
+.contact .meta .m b{display:block;font-family:var(--mono);font-weight:400;font-size:10.5px;letter-spacing:0.16em;text-transform:uppercase;color:var(--ink-4);margin-bottom:10px;}
+
+/* ============ FOOTER — original site footer ============ */
+footer{background:var(--ink);color:var(--paper);padding:96px 0 40px;}
+footer a{color:inherit;}
+footer a:hover{color:var(--tan);}
+.footer-petowner{display:flex;align-items:center;justify-content:space-between;gap:40px;flex-wrap:wrap;padding-bottom:52px;margin-bottom:56px;border-bottom:1px solid rgba(244,239,229,0.18);}
+.footer-petowner .eyebrow{font-family:var(--sans);font-size:11px;letter-spacing:0.22em;text-transform:uppercase;color:var(--tan);margin-bottom:12px;font-weight:500;}
+.footer-petowner p{font-family:var(--serif);font-size:clamp(22px,2.4vw,30px);line-height:1.25;color:var(--paper);text-wrap:balance;margin:0;max-width:680px;}
+.footer-grid{display:grid;grid-template-columns:1.6fr 1fr 1fr 1fr;gap:56px;}
+@media (max-width:800px){.footer-grid{grid-template-columns:1fr 1fr;gap:36px;}}
+.footer-col h4{font-size:11px;letter-spacing:0.22em;text-transform:uppercase;color:var(--tan);margin:0 0 22px;font-weight:500;}
+.footer-col ul{list-style:none;margin:0;padding:0;}
+.footer-col ul li{padding:5px 0;font-size:15px;color:rgba(244,239,229,0.78);}
+.footer-col .blurb{color:rgba(244,239,229,0.78);max-width:340px;font-size:15px;line-height:1.65;margin:0;}
+.footer-col .logo{height:96px;margin-bottom:24px;filter:invert(1) brightness(1.4);}
+.footer-bottom{margin-top:80px;padding-top:32px;border-top:1px solid rgba(244,239,229,0.18);display:flex;justify-content:space-between;font-size:12px;color:rgba(244,239,229,0.6);gap:24px;flex-wrap:wrap;}
+</style>
 </head>
-<body data-screen-label="Referral Portal">
-  <div id="root"></div>
+<body>
 
-  <!-- React -->
-  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
-  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
-  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<header class="nav-bar">
+  <div class="nav-inner">
+    <a href="index.html" class="nav-brand" aria-label="Dr. Debra Canapp">
+      <img src="assets/logo-mark.png" alt="" class="nav-logo" />
+      <span><span class="nav-name" style="display:block;">Dr. Debra Canapp</span><span class="nav-sub" style="display:block;">Veterinary Sports Medicine</span></span>
+    </a>
+    <nav class="nav-links">
+      <a href="index.html" class="active">Home</a><a href="services.html">Services</a><a href="course.html">Course</a><a href="network.html">Network</a><a href="lectures.html">Lectures</a><a href="achievements.html">Achievements</a><a href="about.html">About</a>
+    </nav>
+    <div class="nav-right">
+      <a href="https://portal.drdebracanapp.com" class="nav-portal"><svg width="11" height="11" viewBox="0 0 12 12" fill="none" aria-hidden="true" style="margin-right:6px;"><rect x="2.5" y="5.5" width="7" height="5" rx="0.5" stroke="currentColor" stroke-width="1.1"></rect><path d="M4 5.5V4a2 2 0 0 1 4 0v1.5" stroke="currentColor" stroke-width="1.1"></path></svg>Portal login</a>
+      <span class="nav-divider" aria-hidden="true"></span>
+      <a href="mailto:info@drdebracanapp.com" class="btn btn-sm">Contact</a>
+    </div>
+  </div>
+</header>
 
-  <!-- Config + Supabase SDK (no-op if config.js is empty) -->
-  <script src="config.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.0/dist/umd/supabase.min.js"></script>
+<!-- ============ HERO ============ -->
+<header class="hero" id="top" data-screen-label="Hero — cinematic cover">
+  <div class="photo"><img src="assets/portrait-doberman.png" alt="Dr. Debra Canapp with a doberman patient" /></div>
 
-  <!-- App -->
-  <script type="text/babel" src="tweaks-panel.jsx"></script>
-  <script type="text/babel" src="shared.jsx"></script>
-  <script type="text/babel" src="portal-storage.jsx"></script>
-  <script type="text/babel" src="portal-dicom-meta.jsx"></script>
-  <script type="text/babel" src="portal-supabase.jsx"></script>
-  <script type="text/babel" src="report-format.jsx"></script>
-  <script type="text/babel" src="billing.jsx"></script>
-  <script src="schedule-cloud.js"></script>
-  <script type="text/babel" src="schedule-data.jsx"></script>
-  <script type="text/babel" src="billing-accounts.jsx"></script>
-  <script type="text/babel" src="schedule-billing.jsx"></script>
-  <script type="text/babel" src="billing-entities.jsx"></script>
-  <script type="text/babel" src="schedule-rates.jsx"></script>
-  <script type="text/babel" src="portal-fees.jsx"></script>
-  <script type="text/babel" src="portal-billing.jsx"></script>
-  <script type="text/babel" src="portal-views.jsx"></script>
-  <script type="text/babel" src="portal.jsx"></script>
+  <div class="inner">
+    <div class="kick fx"><span class="no">§ 01</span> Diagnostic MSK ultrasound · worldwide</div>
+    <h1 class="lines">
+      <span class="ln"><span>Dr. Debra</span></span>
+      <span class="ln"><span class="l2">Canapp</span></span>
+    </h1>
+    <p class="lede fx d1">A pioneer in canine musculoskeletal ultrasound and Diplomate of the ACVSMR — diagnosing the soft-tissue injury that traditional imaging misses, and teaching the modality worldwide.</p>
+    <div class="ctas fx d2">
+      <a href="services.html" class="btn">Services <span class="arrow">→</span></a>
+      <a href="course.html" class="btn ghost">The Course</a>
+    </div>
+  </div>
+
+  <div class="foot">
+    <span>Veterinary sports medicine</span>
+    <span>Practicing &amp; teaching worldwide</span>
+    <span>Diplomate · ACVSMR</span>
+  </div>
+</header>
+
+<!-- ============ MARQUEE ============ -->
+<div class="marquee" aria-hidden="true">
+  <div class="track" id="mqtrack"></div>
+</div>
+
+<!-- ============ PURPOSE ============ -->
+<section class="purpose" id="purpose" data-screen-label="Purpose">
+  <div class="container">
+    <div class="grid">
+      <div class="kick fx"><span class="no">§ 02</span> Purpose</div>
+      <h2 class="lines">
+        <span class="ln"><span>Helping diagnose what other</span></span>
+        <span class="ln"><span>imaging <em>quietly misses,</em> and teaching</span></span>
+        <span class="ln"><span>the modality to the veterinarians of tomorrow.</span></span>
+      </h2>
+    </div>
+    <div class="aside">
+      <div></div>
+      <p class="fx d1">Ultrasound sees soft tissue in motion — tendon, muscle and ligament pathology that films and CT can only infer. The practice rests on two pillars: the clinic, and the classroom.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ PILLARS ============ -->
+<section class="pillars" data-screen-label="Pillars">
+  <div class="container">
+    <div class="wrap">
+      <a class="pillar light" href="services.html">
+        <span class="mark"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><g fill="currentColor"><g opacity="0.5"><ellipse cx="17.4" cy="7.3" rx="6.4" ry="1.25" transform="rotate(-9 12 7.6)"></ellipse><ellipse cx="6.6" cy="7.3" rx="6.4" ry="1.25" transform="rotate(9 12 7.6)"></ellipse><ellipse cx="17" cy="8.7" rx="5.9" ry="1.2" transform="rotate(16 12 8.2)"></ellipse><ellipse cx="7" cy="8.7" rx="5.9" ry="1.2" transform="rotate(-16 12 8.2)"></ellipse></g><ellipse cx="12" cy="3.2" rx="1.9" ry="1.45"></ellipse><ellipse cx="12" cy="6.6" rx="1.45" ry="2.1"></ellipse><path d="M11.45 8.4 L12.55 8.4 L12.22 22.2 Q12 22.9 11.78 22.2 Z"></path></g></svg></span>
+        <span class="kick"><span class="no">For veterinarians</span></span>
+        <h3>The Clinic</h3>
+        <p>On-site diagnostic MSK ultrasound, regenerative medicine and rehabilitation guidance — for the cases you'd otherwise refer out.</p>
+        <span class="go">Services &amp; referrals <span class="arrow">→</span></span>
+      </a>
+      <a class="pillar dark" href="course.html">
+        <span class="mark"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><g fill="currentColor"><g opacity="0.5"><ellipse cx="17.4" cy="7.3" rx="6.4" ry="1.25" transform="rotate(-9 12 7.6)"></ellipse><ellipse cx="6.6" cy="7.3" rx="6.4" ry="1.25" transform="rotate(9 12 7.6)"></ellipse><ellipse cx="17" cy="8.7" rx="5.9" ry="1.2" transform="rotate(16 12 8.2)"></ellipse><ellipse cx="7" cy="8.7" rx="5.9" ry="1.2" transform="rotate(-16 12 8.2)"></ellipse></g><ellipse cx="12" cy="3.2" rx="1.9" ry="1.45"></ellipse><ellipse cx="12" cy="6.6" rx="1.45" ry="2.1"></ellipse><path d="M11.45 8.4 L12.55 8.4 L12.22 22.2 Q12 22.9 11.78 22.2 Z"></path></g></svg></span>
+        <span class="kick"><span class="no">For veterinarians</span></span>
+        <h3>The Course</h3>
+        <p>The Canine MSK Ultrasound curriculum — self-paced lectures, graded homework, and remote-read access.</p>
+        <span class="go">Curriculum &amp; enrollment <span class="arrow">→</span></span>
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- ============ REGIONS ============ -->
+<section class="regions" id="regions" data-screen-label="Regions index">
+  <div class="container">
+    <div class="kick fx"><span class="no">§ 03</span> The curriculum</div>
+    <h2 class="lines" style="margin-top:24px;">
+      <span class="ln"><span>Five anatomical regions.</span></span>
+      <span class="ln"><span><em style="font-style:italic;font-weight:300;color:var(--clay);">One probe.</em> Your trained eye.</span></span>
+    </h2>
+    <div class="reglist rule-x-wrap">
+      <a class="reg" href="course.html#shoulder" data-img="assets/probe-shepherd-1.png">
+        <span class="n">01</span><span class="nm">Shoulder</span>
+        <span class="ar"><span>Biceps</span><span>Supraspinatus</span></span>
+      </a>
+      <a class="reg" href="course.html#iliopsoas" data-img="assets/probe-shepherd-2.png">
+        <span class="n">02</span><span class="nm">Iliopsoas</span>
+        <span class="ar"><span>Muscle belly</span><span>Myotendinous junction</span></span>
+      </a>
+      <a class="reg" href="course.html#stifle" data-img="assets/probe-doberman-white.png">
+        <span class="n">03</span><span class="nm">Stifle</span>
+        <span class="ar"><span>Cruciate</span><span>Meniscus</span></span>
+      </a>
+      <a class="reg" href="course.html#tarsus" data-img="assets/probe-shepherd-3.png">
+        <span class="n">04</span><span class="nm">Tarsus</span>
+        <span class="ar"><span>Achilles complex</span><span>Gastrocnemius</span></span>
+      </a>
+      <a class="reg" href="course.html#carpus" data-img="assets/probe-doberman-black.png">
+        <span class="n">05</span><span class="nm">Carpus</span>
+        <span class="ar"><span>Flexor tendons</span><span>Extensor tendons</span></span>
+      </a>
+    </div>
+  </div>
+</section>
+<div id="float"><img src="assets/probe-shepherd-1.png" alt="" /><div class="cap" id="floatcap">Shoulder</div></div>
+
+<!-- ============ COURSE ============ -->
+<section class="course" id="course" data-screen-label="Course">
+  <svg class="cone" viewBox="0 0 720 720" fill="none" aria-hidden="true">
+    <path d="M60 660 L660 120 L700 420 Z" fill="#B16A48" opacity="0.08"/>
+    <path d="M60 660 L660 120 M60 660 L700 420" stroke="#B16A48" stroke-width="1" opacity="0.35"/>
+    <circle cx="60" cy="660" r="4" fill="#B16A48" opacity="0.6"/>
+  </svg>
+  <div class="container">
+    <div class="grid">
+      <div>
+        <div class="kick fx"><span class="no">§ 04</span> The Canine MSK Ultrasound Course</div>
+        <h2 class="lines">
+          <span class="ln"><span>Learn to read what</span></span>
+          <span class="ln"><span>the films <em>can't show you.</em></span></span>
+        </h2>
+        <p class="lede fx d1">A self-paced online curriculum across five anatomical regions, with homework graded personally by Dr. Canapp. Materials are yours for 12 months, extendable in 3- or 6-month intervals.</p>
+        <div class="ctas fx d2">
+          <a href="course.html" class="btn clay">Explore the course <span class="arrow">→</span></a>
+          <a href="course.html#pricing" class="btn inv-ghost">View pricing</a>
+        </div>
+      </div>
+      <div class="stats fx d1">
+        <div class="stat"><div class="v"><span data-count="121">0</span></div><div class="l">Lessons</div></div>
+        <div class="stat"><div class="v"><span data-count="6">0</span></div><div class="l">Modules</div></div>
+        <div class="stat"><div class="v sm">$250 – $7,975</div><div class="l">Tuition range</div></div>
+        <div class="stat"><div class="v">12<span style="font-size:0.5em;">mo</span></div><div class="l">Initial access</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ CONTACT ============ -->
+<section class="contact" id="contact" data-screen-label="Contact">
+  <div class="container">
+    <div class="kick fx"><span class="no">§ 05</span> Get in touch</div>
+    <h2 class="lines">
+      <span class="ln"><span>Course inquiries, lecture invitations,</span></span>
+      <span class="ln"><span>and <em style="font-style:italic;font-weight:300;color:var(--clay);">collaborations.</em></span></span>
+    </h2>
+    <a class="email fx d1" href="mailto:info@drdebracanapp.com">info@drdebracanapp.com</a>
+    <div class="meta fx d2">
+      <div class="m"><b>Referrals</b>Like an MRI referral — Dr. Canapp works with your existing care team.</div>
+      <div class="m"><b>Remote reads</b>Second-opinion image review for referring veterinarians, worldwide.</div>
+      <div class="m"><b>Lectures</b>International teaching engagements and conference invitations.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ FOOTER ============ -->
+<footer data-screen-label="Footer" id="footer">
+  <div class="container">
+    <div class="footer-petowner">
+      <div style="max-width:680px;">
+        <div class="eyebrow">Are you a pet owner?</div>
+        <p>Looking for a musculoskeletal ultrasound for your dog? Find a clinician trained by Dr. Canapp near you.</p>
+      </div>
+      <a href="network.html" class="btn clay" style="white-space:nowrap;">See the network <span class="arrow">→</span></a>
+    </div>
+    <div class="footer-grid">
+      <div class="footer-col">
+        <img class="logo" src="assets/logo-mark.png" alt="Dr. Debra Canapp" />
+        <p class="blurb">Veterinary sports medicine and diagnostic musculoskeletal ultrasound.</p>
+      </div>
+      <div class="footer-col">
+        <h4>Practice</h4>
+        <ul>
+          <li><a href="services.html">Services</a></li>
+          <li><a href="services.html">Refer a case</a></li>
+          <li><a href="services.html">Remote reads</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Education</h4>
+        <ul>
+          <li><a href="course.html">The Course</a></li>
+          <li><a href="course.html">Modules</a></li>
+          <li><a href="course.html">Enroll</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Contact</h4>
+        <ul>
+          <li><a href="mailto:info@drdebracanapp.com">info@drdebracanapp.com</a></li>
+          <li style="margin-top:12px;"><a href="#contact">Send a message via the contact form</a></li>
+          <li style="margin-top:12px;"><a href="https://portal.drdebracanapp.com" style="color:var(--tan);">Referral portal · sign in →</a></li>
+          <li style="margin-top:12px;"><a href="https://portal.drdebracanapp.com/Schedule.html" style="color:var(--tan);">Hospital scheduling · sign in →</a></li>
+          <li style="margin-top:8px;"><a href="https://portal.drdebracanapp.com/Console.html" style="color:var(--ink-4,#8a8f86);font-size:12px;">Staff sign-in →</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <div>© 2026 Dr. Debra A. Canapp</div>
+      <div>DVM · CCRT · CVA · Diplomate, ACVSMR</div>
+    </div>
+  </div>
+</footer>
+
+<script>
+/* ---- marquee ---- */
+(function(){
+  const items=['Diagnostic MSK Ultrasound','Sports Medicine','Regenerative Guidance','Canine Rehabilitation','Remote-read Consultation','Continuing Education','Diplomate · ACVSMR'];
+  const t=document.getElementById('mqtrack');
+  t.innerHTML=(items.concat(items)).map(i=>'<span class="it">'+i+'</span>').join('');
+})();
+
+/* ---- reveals ---- */
+const io=new IntersectionObserver(es=>es.forEach(e=>{
+  if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target);}
+}),{threshold:0.15});
+document.querySelectorAll('.lines,.fx,.rule-x').forEach(el=>io.observe(el));
+
+/* ---- count-up ---- */
+const cio=new IntersectionObserver(es=>es.forEach(e=>{
+  if(!e.isIntersecting)return;cio.unobserve(e.target);
+  const el=e.target,to=+el.dataset.count,t0=performance.now(),dur=1400;
+  (function tick(t){const p=Math.min((t-t0)/dur,1);el.textContent=Math.round(to*(1-Math.pow(1-p,3)));if(p<1)requestAnimationFrame(tick);})(t0);
+}),{threshold:0.5});
+document.querySelectorAll('[data-count]').forEach(el=>cio.observe(el));
+
+/* ---- chapter rail ---- */
+/* ---- regions floating image ---- */
+const fl=document.getElementById('float'),fimg=fl.querySelector('img'),fcap=document.getElementById('floatcap');
+let fx=0,fy=0,tx=0,ty=0,vis=false;
+document.querySelectorAll('.reg').forEach(r=>{
+  r.addEventListener('mouseenter',()=>{fimg.src=r.dataset.img;fcap.textContent=r.querySelector('.nm').textContent;fl.style.opacity=1;vis=true;});
+  r.addEventListener('mouseleave',()=>{fl.style.opacity=0;vis=false;});
+});
+addEventListener('mousemove',e=>{tx=e.clientX+28;ty=e.clientY-110;});
+(function loop(){
+  fx+=(tx-fx)*0.12;fy+=(ty-fy)*0.12;
+  if(vis)fl.style.transform='translate('+Math.min(fx,innerWidth-340)+'px,'+Math.max(12,Math.min(fy,innerHeight-240))+'px)';
+  requestAnimationFrame(loop);
+})();
+</script>
+<script src="mobile-nav.js"></script>
+<script src="i18n.js"></script>
 </body>
 </html>

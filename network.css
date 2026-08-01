@@ -1,0 +1,398 @@
+/* ============= Network Map ============= */
+.map-wrap {
+  position: relative;
+  background: var(--paper);
+  border-top: 1px solid var(--ink);
+  border-bottom: 1px solid var(--ink);
+  overflow: hidden;
+}
+.map-svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: var(--paper);
+}
+
+/* .map-zoom — transform is driven by requestAnimationFrame via SVG attribute.
+   Don't apply CSS transform here; it doesn't work on <g> in some browsers. */
+.map-zoom { will-change: transform; }
+/* When zoomed, the path layer is purely decorative — let pointer events fall through */
+.map-zoom.is-zoomed .country-path { pointer-events: none; }
+
+/* Markers transition smoothly. Use longer duration matching the camera. */
+.marker .marker-dot,
+.marker .marker-ring,
+.marker .marker-hit,
+.marker .marker-pulse {
+  transition: transform 0.85s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.6s ease;
+}
+/* All non-focused markers shrink + dim while zoomed so the target is hero. */
+.map-zoom.is-zoomed .marker:not(.focused) .marker-dot {
+  transform: scale(0.28);
+  opacity: 0.32;
+}
+.map-zoom.is-zoomed .marker:not(.focused) .marker-ring {
+  transform: scale(0.28);
+  opacity: 0.18;
+}
+.map-zoom.is-zoomed .marker:not(.focused) .marker-hit {
+  transform: scale(0.4);
+}
+.map-zoom.is-zoomed .marker:not(.focused) .marker-pulse {
+  opacity: 0;
+}
+/* Focused marker pops + glows */
+.map-zoom.is-zoomed .marker.focused .marker-dot {
+  transform: scale(1);
+  filter: drop-shadow(0 0 6px rgba(177,106,72,0.7));
+}
+.map-zoom.is-zoomed .marker.focused .marker-ring {
+  transform: scale(1.2);
+  opacity: 1;
+  stroke-width: 1.4;
+}
+.map-zoom.is-zoomed .marker.focused .marker-hit {
+  transform: scale(2);
+}
+.map-zoom.is-zoomed .marker.focused .marker-pulse {
+  transform: scale(1);
+  transform-origin: center;
+  transform-box: fill-box;
+}
+.map-zoom.is-zoomed .marker.primary.focused .marker-dot {
+  transform: scale(0.7);
+}
+.map-zoom.is-zoomed .marker.primary.focused .marker-ring {
+  transform: scale(0.9);
+}
+
+.country-path {
+  fill: var(--paper-deep);
+  stroke: var(--paper);
+  stroke-width: 0.6;
+  vector-effect: non-scaling-stroke;
+  transition: fill 0.2s ease;
+}
+.country-path.has-clinic {
+  fill: #DBD3BB;
+}
+.country-path.is-primary {
+  fill: #C7B98F;
+}
+.country-path.is-hover {
+  fill: var(--clay) !important;
+  fill-opacity: 0.6;
+}
+
+.marker {
+  cursor: pointer;
+  transition: transform 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+  transform-origin: center;
+  transform-box: fill-box;
+}
+.marker-ring {
+  fill: none;
+  stroke: var(--clay);
+  stroke-width: 1;
+  transform-origin: center;
+  transform-box: fill-box;
+  opacity: 0.6;
+  pointer-events: none;
+}
+.marker-dot {
+  fill: var(--clay);
+  stroke: var(--paper);
+  stroke-width: 1.6;
+  transform-origin: center;
+  transform-box: fill-box;
+  pointer-events: none;
+}
+.marker-pulse { pointer-events: none; }
+.marker-hit {
+  fill: transparent;
+  pointer-events: all;
+  transform-origin: center;
+  transform-box: fill-box;
+}
+.marker.primary .marker-dot {
+  fill: var(--ink);
+  stroke: var(--clay);
+  stroke-width: 2.4;
+  filter: drop-shadow(0 1.5px 3px rgba(24,33,28,0.55));
+}
+.marker.primary .marker-ring {
+  stroke: var(--ink);
+  stroke-width: 1.6;
+  opacity: 0.7;
+}
+.marker.graduate .marker-dot {
+  fill: var(--sage);
+  stroke: var(--paper);
+  stroke-width: 1.4;
+}
+.marker.graduate .marker-ring {
+  stroke: var(--sage);
+  opacity: 0.45;
+}
+.marker:hover .marker-dot, .marker.selected .marker-dot {
+  transform: scale(1.4);
+}
+.marker:hover .marker-ring, .marker.selected .marker-ring {
+  transform: scale(1.6);
+  opacity: 0.85;
+}
+/* Marker pulse */
+@keyframes marker-pulse {
+  0%   { r: 7; opacity: 0.75; }
+  100% { r: 26; opacity: 0; }
+}
+.marker-pulse {
+  fill: none;
+  stroke: var(--clay);
+  stroke-width: 1.4;
+  animation: marker-pulse 2.4s ease-out infinite;
+  pointer-events: none;
+}
+.marker.primary .marker-pulse {
+  stroke: var(--ink);
+  stroke-width: 1.8;
+}
+
+/* Tooltip */
+.map-tip {
+  position: absolute;
+  background: var(--ink);
+  color: var(--paper);
+  padding: 12px 16px;
+  pointer-events: none;
+  z-index: 5;
+  transform: translate(12px, -50%);
+  max-width: 280px;
+  box-shadow: 0 12px 28px -8px rgba(24,33,28,0.5);
+  font-size: 13px;
+  line-height: 1.4;
+  border-left: 3px solid var(--clay);
+}
+.map-tip .tip-name { font-family: var(--serif); font-size: 18px; line-height: 1.15; color: var(--paper); margin-bottom: 6px; }
+.map-tip .tip-loc { color: var(--tan); font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; }
+
+/* Close-zoom button */
+.map-close-zoom {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: var(--paper);
+  border: 1px solid var(--ink);
+  color: var(--ink);
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  font-weight: 500;
+  cursor: pointer;
+  box-shadow: 0 8px 22px -10px rgba(24,33,28,0.35);
+  z-index: 6;
+  transition: background 0.2s, color 0.2s;
+  font-family: var(--sans);
+}
+.map-close-zoom span { font-size: 14px; line-height: 1; }
+.map-close-zoom:hover { background: var(--ink); color: var(--paper); }
+
+/* Legend */
+.map-legend {
+  display: flex; gap: 24px;
+  align-items: center;
+  padding: 16px 0;
+  font-size: 13px;
+  color: var(--ink-3);
+}
+.map-legend .lg-dot {
+  display: inline-block;
+  width: 10px; height: 10px; border-radius: 50%;
+  margin-right: 8px;
+  vertical-align: -1px;
+}
+.map-legend .lg-dot.primary { background: var(--ink); border: 2px solid var(--clay); }
+.map-legend .lg-dot.trained { background: var(--clay); border: 1px solid var(--paper); }
+.map-legend .lg-dot.graduate { background: var(--sage); border: 1px solid var(--paper); }
+.map-legend .lg-tint {
+  display: inline-block;
+  width: 16px; height: 10px;
+  margin-right: 8px;
+  vertical-align: -1px;
+  background: #DBD3BB;
+}
+
+/* Detail card */
+.map-detail {
+  background: var(--ink);
+  color: var(--paper);
+  padding: 36px 40px;
+  display: grid;
+  grid-template-columns: 80px 1fr 1fr 200px;
+  gap: 36px;
+  align-items: start;
+}
+.map-detail .md-num {
+  font-family: var(--serif);
+  font-size: 48px;
+  line-height: 1;
+  color: var(--clay);
+  letter-spacing: -0.02em;
+}
+.map-detail .md-name {
+  font-family: var(--serif);
+  font-size: 30px;
+  line-height: 1.1;
+  letter-spacing: -0.012em;
+  color: var(--paper);
+}
+.map-detail .md-eb {
+  font-size: 11px;
+  letter-spacing: 0.22em;
+  color: var(--tan);
+  text-transform: uppercase;
+  margin-bottom: 6px;
+  font-weight: 500;
+}
+.map-detail a { color: var(--tan); border-bottom: 1px solid rgba(244,239,229,0.3); transition: color 0.2s, border-color 0.2s; }
+.map-detail a:hover { color: var(--paper); border-bottom-color: var(--paper); }
+.map-detail .md-name-link {
+  color: var(--paper);
+  border-bottom: none;
+  transition: color 0.2s;
+}
+.map-detail .md-name-link:hover { color: var(--clay); border-bottom: none; }
+@media (max-width: 900px) {
+  .map-detail { grid-template-columns: 1fr; gap: 18px; padding: 28px 24px; }
+  .map-detail .md-num { font-size: 32px; }
+}
+
+/* Clinic list */
+.clinic-list {
+  border-top: 1px solid var(--ink);
+}
+.clinic-row {
+  display: grid;
+  grid-template-columns: 50px 1.4fr 1.1fr 1fr 130px;
+  gap: 24px;
+  padding: 24px 0;
+  border-bottom: 1px solid var(--rule);
+  align-items: center;
+  cursor: pointer;
+  transition: padding 0.25s, background 0.25s;
+}
+.clinic-row:hover, .clinic-row.active {
+  padding-left: 12px;
+  background: rgba(177,106,72,0.05);
+}
+.clinic-row .cr-num {
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  color: var(--ink-3);
+  font-weight: 500;
+}
+.clinic-row .cr-name {
+  font-family: var(--serif);
+  font-size: 24px;
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+}
+.clinic-row.active .cr-name { color: var(--clay); }
+.clinic-row .cr-loc {
+  font-size: 14px;
+  color: var(--ink-3);
+}
+.clinic-row .cr-clinic {
+  font-size: 14px;
+  color: var(--ink-2);
+}
+.clinic-row .cr-link {
+  color: var(--ink-2);
+  border-bottom: 1px solid transparent;
+  transition: color 0.2s, border-color 0.2s;
+}
+.clinic-row .cr-link:hover {
+  color: var(--clay);
+  border-bottom-color: var(--clay);
+}
+.clinic-row .cr-link-arrow {
+  font-size: 11px;
+  color: var(--ink-3);
+  margin-left: 2px;
+  transition: color 0.2s, transform 0.2s;
+  display: inline-block;
+}
+.clinic-row .cr-link:hover .cr-link-arrow {
+  color: var(--clay);
+  transform: translate(2px, -2px);
+}
+.clinic-row .cr-tag {
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--clay);
+  text-align: right;
+  font-weight: 500;
+}
+.clinic-row.primary .cr-tag { color: var(--ink); }
+.clinic-row.graduate .cr-tag { color: var(--sage-deep); }
+@media (max-width: 900px) {
+  .clinic-row { grid-template-columns: 1fr; gap: 6px; padding: 18px 0; }
+  .clinic-row .cr-tag { text-align: left; }
+}
+
+/* Filter chips */
+.chip-row {
+  display: flex; gap: 10px; flex-wrap: wrap;
+  margin-bottom: 32px;
+}
+.chip {
+  padding: 10px 18px;
+  border: 1px solid var(--rule-2);
+  background: var(--paper);
+  font-size: 13px;
+  letter-spacing: 0.04em;
+  color: var(--ink-2);
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s, border-color 0.2s;
+}
+.chip:hover { border-color: var(--ink); }
+.chip.active { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+
+/* Map view tab toggle */
+.map-tab {
+  padding: 10px 22px;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  color: var(--ink);
+  background: var(--paper);
+  border: none;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background 0.2s, color 0.2s;
+}
+.map-tab + .map-tab { border-left: 1px solid var(--ink); }
+.map-tab[data-active="true"] { background: var(--ink); color: var(--paper); }
+.map-tab:hover[data-active="false"], .map-tab:hover:not([data-active="true"]) { background: rgba(24,33,28,0.06); }
+
+/* Map loading state */
+.map-loading {
+  height: 600px;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--serif); font-size: 22px; color: var(--ink-3);
+  font-style: italic;
+}
+.map-loading::before {
+  content: '';
+  width: 24px; height: 24px;
+  border: 2px solid var(--rule-2);
+  border-top-color: var(--clay);
+  border-radius: 50%;
+  margin-right: 14px;
+  animation: spin 0.9s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
