@@ -412,11 +412,6 @@ function ScheduleApp({ profile, boot }) {
           <div className="sc-subbar-spacer" />
           {!isHospital && (
             <React.Fragment>
-              <span className="sc-role-hint">Viewing as</span>
-              <div className="sc-role">
-                <button className={role === 'admin' ? 'active' : ''} onClick={() => { setRole('admin'); setSelId(null); }}>Admin (our side)</button>
-                <button className={role === 'clinic' ? 'active' : ''} onClick={() => { setRole('clinic'); setSelId(null); }} disabled={!clinicId} title={clinicId ? 'Preview what a hospital sees' : 'Add a hospital first — approve a visit request or invite one under Clinics'}>Clinic (their side)</button>
-              </div>
             </React.Fragment>
           )}
         </div>
@@ -535,6 +530,7 @@ function ScheduleApp({ profile, boot }) {
 function ClinicsView({ days, role, clinicId, rev, onEdit, flash, entities, accounts, on }) {
   const Sx = window.SCHED;
   const [ledgerFor, setLedgerFor] = useState(null);
+  const [invite, setInvite] = useState(false);
   const countFor = (cid) => days.filter(d => d.clinic === cid).length;
   const list = role === 'clinic' ? Sx.CLINICS.filter(c => c.id === clinicId) : Sx.CLINICS;
   const dayLabel = (bd) => (bd && bd.length) ? bd.map(i => Sx.WEEKDAYS[i]).join(' · ') : 'No days set';
@@ -542,7 +538,7 @@ function ClinicsView({ days, role, clinicId, rev, onEdit, flash, entities, accou
     <React.Fragment>
       <div className="sc-caltools">
         <div className="sc-monthnav"><div className="mo" style={{ minWidth: 0 }}>Hospitals</div></div>
-        {role === 'admin' && <div className="sc-caltools-right"><a className="btn btn-clay btn-sm" href="ClinicIntake.html" target="_blank">+ Invite a hospital</a></div>}
+        {role === 'admin' && <div className="sc-caltools-right"><button className="btn btn-clay btn-sm" onClick={() => setInvite(true)}>+ Invite a hospital</button></div>}
       </div>
       <p className="rv-sub" style={{ marginBottom: 24 }}>Hospitals Dr. Canapp travels to — <strong>separate from the remote-read referral portal</strong>. {role === 'admin' && 'Click any hospital to set its color, bookable weekdays, and case cap.'}</p>
       {list.length === 0 && <div className="sc-empty"><div className="eh">No hospitals yet</div><p>Approve a visit request or invite a hospital to get started.</p></div>}
@@ -586,6 +582,7 @@ function ClinicsView({ days, role, clinicId, rev, onEdit, flash, entities, accou
           );
         })}
       </div>
+      {invite && window.InviteHospitalModal && <window.InviteHospitalModal onClose={() => setInvite(false)} flash={flash} />}
       {ledgerFor && (() => {
         const acct = (accounts || []).find(x => x.id === ledgerFor) || window.SchedAccounts.fromClinic(Sx.clinic(ledgerFor));
         return (

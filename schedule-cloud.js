@@ -10,7 +10,11 @@
   const configured = !!(cfg.url && cfg.anonKey && window.supabase);
   let sb = null;
   if (configured) {
-    sb = window.supabase.createClient(cfg.url, cfg.anonKey);
+    // Same storageKey as portal-supabase.jsx, or signing in on Schedule /
+    // Console would not count on reviewer.html and vice versa.
+    sb = window.supabase.createClient(cfg.url, cfg.anonKey, {
+      auth: { persistSession: true, autoRefreshToken: true, storageKey: 'ddc_supabase_auth' },
+    });
   }
 
   /* ---------- row ↔ app-shape transforms ---------- */

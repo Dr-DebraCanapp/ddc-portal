@@ -182,6 +182,7 @@
       const [phase, setPhase] = useState('boot'); // boot | signin | denied | ready | error
       const [err, setErr] = useState('');
       const [reqs, setReqs] = useState([]);
+      const [profile, setProfile] = useState(null);
       const [filter, setFilter] = useState('pending');
       const [approveModal, setApproveModal] = useState(null);
 
@@ -189,6 +190,7 @@
         try {
           const prof = await Cloud.profile();
           if (!prof) { setPhase('signin'); return; }
+          setProfile(prof);
           if (prof.role !== 'reviewer' && prof.role !== 'admin') { setPhase('denied'); return; }
           const { data, error } = await Cloud.client.from('sched_visit_requests').select('*').order('submitted_at', { ascending: false });
           if (error) throw new Error(error.message);
@@ -220,7 +222,7 @@
 
       return (
         <div className="rv-page">
-          <window.PrototypeBar active="apps" who="Allyson Li" role="Admin" />
+          <window.PrototypeBar active="apps" who={(profile && (profile.name || profile.email)) || ''} role={(profile && profile.role) || 'Admin'} />
           <main className="rv-main rv-apps-main">
             <div className="rv-head"><div>
               <div className="rv-eyebrow">Visit requests</div>
