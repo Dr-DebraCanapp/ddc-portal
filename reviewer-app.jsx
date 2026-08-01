@@ -98,18 +98,29 @@ function AdminLogin({ onLogin }) {
   const [email, setEmail] = rUseState('');
   const [password, setPassword] = rUseState('');
   const [err, setErr] = rUseState(null);
+  const [denied, setDenied] = rUseState(false);
   const [busy, setBusy] = rUseState(false);
+  const AX = window.AccessNotice;
   const submit = async (e) => {
     e.preventDefault();
     setBusy(true); setErr(null);
     const r = await onLogin(email, password);
     setBusy(false);
+    // A valid account at the wrong door gets directions, not a red bar.
+    if (r && r.error && /not authorized/i.test(r.error)) { setDenied(true); return; }
     if (r && r.error) setErr(r.error);
   };
   const cloudMode = !!window.SupabaseAuth;
   return (
     <div className="admin-login">
       <DragonflyField />
+      {denied && AX && (
+        <AX
+          title="This console is for Dr. Canapp's office."
+          body={"Those credentials work \u2014 they're just not for this page. Here's where you're headed:"}
+          onDismiss={() => setDenied(false)}
+        />
+      )}
       <div className="admin-login-card">
         <div className="adm-brand">
           <img src="assets/logo-mark.png" alt="" />

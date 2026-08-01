@@ -96,7 +96,8 @@ function SchedNotice({ title, children }) {
   );
 }
 
-function SchedSignIn({ onSignedIn }) {
+function SchedSignIn({ onSignedIn, denied, onDismiss }) {
+  const AX = window.AccessNotice;
   const [email, setEmail] = useState('');
   const [pw, setPw] = useState('');
   const [busy, setBusy] = useState(false);
@@ -110,6 +111,27 @@ function SchedSignIn({ onSignedIn }) {
   return (
     <div className="rv-page">
       <SchedDragonflyField />
+      {denied === 'vet' && (
+        <AX
+          title="This page is for hospitals hosting a clinic day."
+          body="Your account is a referring-veterinarian account — the remote-read portal is where your cases live."
+          links={[
+            { href: 'index.html', t: 'Referring veterinarians',
+              d: 'Submit a study for a remote read, and collect your report' },
+          ]}
+          onDismiss={onDismiss}
+        />
+      )}
+      {denied === 'unlinked' && (
+        <AX
+          eyebrow="Not set up yet"
+          title="Your account isn't linked to a hospital yet."
+          body="Our office finishes this when your first visit is approved. Email info@DrDebraCanapp.com and we'll sort it out."
+          links={[]}
+          onDismiss={onDismiss}
+          dismissLabel="Back to sign in"
+        />
+      )}
       <main className="rv-main" style={{ maxWidth: 440, paddingTop: '12vh' }}>
         <div className="rv-head" style={{ textAlign: 'center', marginBottom: 26 }}>
           <img src="assets/logo-mark.png" alt="" style={{ width: 56, height: 56, objectFit: 'contain' }} onError={e => { e.target.style.display = 'none'; }} />
@@ -133,6 +155,7 @@ function SchedSignIn({ onSignedIn }) {
 
 function SchedGate() {
   const [phase, setPhase] = useState('boot'); // boot | config | signin | denied | error | ready
+  const [denied, setDenied] = useState(null);
   const [err, setErr] = useState('');
   const [profile, setProfile] = useState(null);
   const [boot, setBoot] = useState(null);
@@ -141,8 +164,15 @@ function SchedGate() {
     try {
       const prof = await window.SchedCloud.profile();
       if (!prof) { setPhase('signin'); return; }
-      if (prof.role === 'vet') { setProfile(prof); setPhase('denied'); return; }
-      if (prof.role === 'hospital' && !prof.sched_clinic_id) { setProfile(prof); setPhase('denied'); return; }
+      // Wrong door: sign them out first, or a refresh strands them on the wall.
+      if (prof.role === 'vet') {
+        try { await window.SchedCloud.signOut(); } catch (e) {}
+        setDenied('vet'); setPhase('signin'); return;
+      }
+      if (prof.role === 'hospital' && !prof.sched_clinic_id) {
+        try { await window.SchedCloud.signOut(); } catch (e) {}
+        setDenied('unlinked'); setPhase('signin'); return;
+      }
       const isAdmin = prof.role === 'reviewer' || prof.role === 'admin';
       // prices first: everything downstream is priced from the active card
       if (window.SchedRates) { try { await window.SchedRates.load(); } catch (e) { window.SchedRates.setCards([]); } }
@@ -183,8 +213,7 @@ function SchedGate() {
   if (phase === 'boot') return <SchedNotice title="Connecting…">Loading the schedule from the cloud.</SchedNotice>;
   if (phase === 'config') return <SchedNotice title="Not configured.">Supabase keys are missing from <code>config.js</code>, or the client library failed to load. The scheduling system requires a live connection — see <strong>SCHED-SUPABASE-SETUP.md</strong>.</SchedNotice>;
   if (phase === 'error') return <SchedNotice title="Couldn't reach the cloud."><p style={{ color: '#c24444' }}>{err}</p><p>Check your connection and reload. Nothing was lost — the schedule lives in Supabase.</p></SchedNotice>;
-  if (phase === 'signin') return <SchedSignIn onSignedIn={load} />;
-  if (phase === 'denied') return <SchedNotice title="No access to scheduling.">This account isn't set up for in-person scheduling. Referring vets: use the <a href="portal.html">remote-read portal</a>. Hospitals: contact our office if your account is missing its clinic link.<div style={{ marginTop: 16 }}><button className="btn btn-ghost btn-sm" onClick={() => window.SchedCloud.signOut()}>Sign out</button></div></SchedNotice>;
+  if (phase === 'signin') return <SchedSignIn onSignedIn={load} denied={denied} onDismiss={() => setDenied(null)} />;
   return <ScheduleApp profile={profile} boot={boot} reload={load} />;
 }
 

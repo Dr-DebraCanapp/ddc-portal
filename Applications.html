@@ -35,9 +35,11 @@
   <script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
   <script src="config.js"></script>
   <script src="schedule-cloud.js"></script>
+  <script type="text/babel" src="access-notice.jsx"></script>
   <script type="text/babel" src="prototype-nav.jsx"></script>
   <script type="text/babel">
     const { useState, useEffect } = React;
+    const AX = window.AccessNotice;
     const Cloud = window.SchedCloud;
     const PALETTE = ['#2A6FDB', '#1F8A5B', '#B8862B', '#8B4A9E', '#0E7C8B', '#C24444', '#D9822B', '#4C6EA8', '#6B7C5C', '#A65D9E', '#3C7A6B', '#C77D3A'];
 
@@ -227,6 +229,7 @@
 
     function VisitRequests() {
       const [phase, setPhase] = useState('boot'); // boot | signin | denied | ready | error
+      const [denied, setDenied] = useState(false);
       const [err, setErr] = useState('');
       const [reqs, setReqs] = useState([]);
       const [profile, setProfile] = useState(null);
@@ -238,7 +241,10 @@
           const prof = await Cloud.profile();
           if (!prof) { setPhase('signin'); return; }
           setProfile(prof);
-          if (prof.role !== 'reviewer' && prof.role !== 'admin') { setPhase('denied'); return; }
+          if (prof.role !== 'reviewer' && prof.role !== 'admin') {
+            try { await Cloud.signOut(); } catch (e) {}
+            setDenied(true); setPhase('signin'); return;
+          }
           const { data, error } = await Cloud.client.from('sched_visit_requests').select('*').order('submitted_at', { ascending: false });
           if (error) throw new Error(error.message);
           setReqs(data.map(reqFromRow)); setPhase('ready');
@@ -262,9 +268,8 @@
         if (error) { alert('Could not save the decline: ' + error.message); load(); }
       };
 
-      if (phase === 'signin') return <div className="rv-page"><MiniSignIn onIn={load} /></div>;
+      if (phase === 'signin') return <div className="rv-page">{denied && <AX onDismiss={() => setDenied(false)} />}<MiniSignIn onIn={load} /></div>;
       if (phase === 'boot') return <div className="rv-page"><main className="rv-main" style={{ paddingTop: '14vh', textAlign: 'center' }}><p className="rv-sub">Loading visit requests…</p></main></div>;
-      if (phase === 'denied') return <div className="rv-page"><main className="rv-main" style={{ paddingTop: '14vh', textAlign: 'center' }}><h2 className="rv-h">Admins only.</h2><p className="rv-sub">This page is for Dr. Canapp's team.</p></main></div>;
       if (phase === 'error') return <div className="rv-page"><main className="rv-main" style={{ paddingTop: '14vh', textAlign: 'center' }}><h2 className="rv-h">Couldn't load.</h2><p className="rv-sub" style={{ color: '#c24444' }}>{err}</p></main></div>;
 
       return (
