@@ -7,6 +7,10 @@ function ApplicationsView({ onBack }) {
   const [apps, setApps] = raUseState([]);
   const [filter, setFilter] = raUseState('pending');
   const [approveModal, setApproveModal] = raUseState(null);
+  const [inviteModal, setInviteModal] = raUseState(null);
+  const [tick, setTick] = raUseState(0);
+  const [note, setNote] = raUseState(null);
+  const flash = (m) => { setNote(m); setTimeout(() => setNote(null), 4000); };
 
   const reload = async () => {
     if (window.PortalDB.refreshApplications) {
@@ -60,7 +64,11 @@ function ApplicationsView({ onBack }) {
               : <>No applications pending. Approved vets can sign in at the public portal.</>}
           </p>
         </div>
+        <div className="rv-head-actions">
+          <button className="btn btn-clay btn-sm" onClick={() => setInviteModal({})}>Invite a veterinarian <span className="arrow">→</span></button>
+        </div>
       </div>
+      {note && <div className="rv-flash">{note}</div>}
 
       <div className="rv-toolbar">
         <div className="rv-filters">
@@ -82,6 +90,25 @@ function ApplicationsView({ onBack }) {
             <AppRow key={app.id} app={app} onApprove={() => startApprove(app)} onDecline={() => decline(app)} />
           ))}
         </div>
+      )}
+
+      {window.InvitationsList && (
+        <window.InvitationsList
+          key={tick}
+          apps={apps}
+          flash={flash}
+          onResend={(inv) => setInviteModal(inv)}
+          onChanged={() => setTick(t => t + 1)}
+        />
+      )}
+
+      {inviteModal && window.InviteVetModal && (
+        <window.InviteVetModal
+          invite={inviteModal.id ? inviteModal : null}
+          flash={flash}
+          onSent={() => setTick(t => t + 1)}
+          onClose={() => setInviteModal(null)}
+        />
       )}
 
       {approveModal && (

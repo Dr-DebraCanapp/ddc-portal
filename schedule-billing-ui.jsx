@@ -21,6 +21,42 @@ function SbKindTag({ kind }) {
   return <span className={`sb-kind ${kind}`}>{kind === 'remote' ? 'Remote' : 'In-person'}</span>;
 }
 
+/* ---- issue an invoice, today or back-dated ----------------- */
+/* Work performed before it reached the system still needs a document
+   dated when it was actually billed — the due date follows from it. */
+function IssueModal({ entity, onSave, onClose }) {
+  const today = SS().iso(new Date(SS().TODAY));
+  const [date, setDate] = useState(today);
+  const terms = B().termsFor(entity);
+  const due = new Date(new Date(date + 'T12:00').getTime() + terms * 86400000);
+  const back = date < today;
+  return (
+    <div className="sc-modal-overlay" onClick={onClose}>
+      <div className="sc-modal" onClick={ev => ev.stopPropagation()}>
+        <div className="sc-modal-eyebrow">Issue · {B().title(entity)}</div>
+        <h2 className="sc-modal-h">{SS().money(B().total(entity))}</h2>
+        <p className="sc-modal-sub">
+          {(entity.account && entity.account.billTo) || 'This account'} · Net {terms}. The invoice number
+          already follows the month the work belongs to; the date below is when the document itself is dated.
+        </p>
+        <div className="form-row">
+          <label className="form-label">Invoice date</label>
+          <input className="form-input" type="date" max={today} value={date} onChange={ev => setDate(ev.target.value || today)} />
+          <div className="form-help">
+            {back
+              ? <>Back-dated — due {due.toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })}, and it will read as overdue if that date has passed. Use this for work you billed before it was entered here.</>
+              : <>Due {due.toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })}.</>}
+          </div>
+        </div>
+        <div className="sc-modal-actions">
+          <button className="btn btn-ghost" onClick={onClose}>Cancel</button>
+          <button className="btn btn-clay" onClick={() => onSave(entity, date)}>{back ? 'Issue, dated ' + new Date(date + 'T12:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : 'Issue invoice'}</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ---- record a payment ------------------------------------- */
 function PaymentModal({ entity, onSave, onClose }) {
   const bal = B().balance(entity);
@@ -213,7 +249,7 @@ function InvoicePanel({ entity, role, on, compact }) {
       {isAdmin && !compact && (
         <div className="sb-actions">
           {!inv || !inv.issued ? (
-            <button className="btn btn-clay btn-sm" onClick={() => on.issueInvoice(entity)}>Issue invoice</button>
+            <button className="btn btn-clay btn-sm" onClick={() => setModal('issue')}>Issue invoice</button>
           ) : (
             <React.Fragment>
               <button className="btn btn-ghost btn-sm" onClick={() => { const w = window.open('', '_blank', 'width=880,height=1040'); if (w) { w.document.write(SS().buildInvoiceHTML(entity)); w.document.close(); } }}>View / print</button>
@@ -238,6 +274,7 @@ function InvoicePanel({ entity, role, on, compact }) {
         </details>
       )}
 
+      {modal === 'issue' && <IssueModal entity={entity} onSave={(en, dt) => { on.issueInvoice(en, dt); setModal(null); }} onClose={() => setModal(null)} />}
       {modal === 'pay' && <PaymentModal entity={entity} onSave={(en, p) => { on.addPayment(en, p); setModal(null); }} onClose={() => setModal(null)} />}
       {modal === 'send' && window.SendInvoiceModal && <window.SendInvoiceModal entity={entity} onClose={() => setModal(null)} />}
       {modal === 'charge' && <ChargeModal entity={entity} onSave={(en, c) => { on.addCharge(en, c); setModal(null); }} onClose={() => setModal(null)} />}
@@ -245,4 +282,4 @@ function InvoicePanel({ entity, role, on, compact }) {
   );
 }
 
-Object.assign(window, { InvoicePanel, PaymentModal, ChargeModal, SbStatusPill, SbKindTag });
+Object.assign(window, { InvoicePanel, PaymentModal, ChargeModal, IssueModal, SbStatusPill, SbKindTag });

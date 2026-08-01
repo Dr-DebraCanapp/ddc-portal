@@ -181,6 +181,15 @@ function ReviewerApp() {
 function Console({ session, logout }) {
   const [view, setView] = rUseState({ name: 'inbox' });
   const [unread, setUnread] = rUseState({});
+  // The case view prices remote reads against every finalized case, so the
+  // shell keeps its own copy of the list rather than borrowing the inbox's.
+  const [allCases, setAllCases] = rUseState([]);
+  const reloadCases = () => {
+    if (window.PortalDB && window.PortalDB.getAllCases) {
+      window.PortalDB.getAllCases().then(setAllCases).catch(() => {});
+    }
+  };
+  rUseEffect(() => { reloadCases(); }, [view.name, view.id]);
   const goInbox = () => setView({ name: 'inbox' });
   const goCase = (id) => setView({ name: 'case', id });
   const goApps = () => setView({ name: 'apps' });
@@ -204,7 +213,7 @@ function Console({ session, logout }) {
         onApps={goApps}
       />
       {view.name === 'inbox' && <Inbox session={session} onOpenCase={goCase} unread={unread} />}
-      {view.name === 'case' && <window.CaseReviewView id={view.id} onBack={goInbox} session={session} allCases={cases} onBillingChange={reload} />}
+      {view.name === 'case' && <window.CaseReviewView id={view.id} onBack={goInbox} session={session} allCases={allCases} onBillingChange={reloadCases} />}
       {view.name === 'apps' && <window.ApplicationsView onBack={goInbox} />}
     </div>
   );

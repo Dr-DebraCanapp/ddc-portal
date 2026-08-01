@@ -223,8 +223,13 @@ function sbNextNumber(existingNumbers, account, date) {
 function sbEntry(who, what) { return { at: new Date().toISOString(), who: who || 'admin', what }; }
 function sbLogged(inv, who, what) { return { ...inv, audit: [...((inv && inv.audit) || []), sbEntry(who, what)] }; }
 
-function sbIssue(existingNumbers, e, who) {
-  const issued = new Date(window.SCHED.TODAY);
+/* `issuedAt` back-dates the document — for work invoiced before it was
+   entered into the system. Omitted, it issues as of today. */
+function sbIssue(existingNumbers, e, who, issuedAt) {
+  const issued = issuedAt
+    ? new Date(/^\d{4}-\d{2}-\d{2}$/.test(String(issuedAt)) ? issuedAt + 'T12:00:00' : issuedAt)
+    : new Date(window.SCHED.TODAY);
+  const backdated = issuedAt && issued < new Date(window.SCHED.TODAY);
   const terms = sbTermsFor(e);
   const prev = e.invoice || {};
   // number by the period the work belongs to, not the day it is billed —
@@ -234,7 +239,7 @@ function sbIssue(existingNumbers, e, who) {
     issued, due: sbAddDays(issued, terms), termsDays: terms,
     charges: prev.charges || [], payments: prev.payments || [],
     writtenOff: false,
-    audit: [...(prev.audit || []), sbEntry(who, 'Invoice issued')],
+    audit: [...(prev.audit || []), sbEntry(who, backdated ? 'Invoice issued, dated ' + issued.toLocaleDateString() + ' (entered later)' : 'Invoice issued')],
   };
 }
 

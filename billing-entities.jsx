@@ -52,28 +52,40 @@ const beBillable = (c) => {
   return !!r.finalizedAt && !r.voided;
 };
 
-/* Group finalized reads into one statement per practice per month. */
-function beStatements(cases, accounts, statementStore) {
+/* Group finalized reads into one statement per practice per month.
+   `manualStore` carries historical reads keyed by statement id — work done
+   before the portal existed, entered by hand. They bill identically. */
+function beStatements(cases, accounts, statementStore, manualStore) {
   const groups = new Map();
+  const ensure = (acctId, y, m, acct, practice, src) => {
+    const key = acctId + '|' + y + '-' + m;
+    if (!groups.has(key)) {
+      groups.set(key, {
+        kind: 'remote',
+        id: 'stmt-' + acctId + '-' + y + String(m + 1).padStart(2, '0'),
+        ref: key,
+        period: { y, m },
+        accountId: acctId,
+        account: acct || BE_A().fromPractice(practice, src),
+        reads: [],
+        invoice: null,
+      });
+    }
+    return groups.get(key);
+  };
   (cases || []).filter(beBillable).forEach(c => {
     const r = beReadFromCase(c);
     const dt = new Date(r.finalizedAt);
     const acct = BE_A().resolve(accounts, r.practice);
     const acctId = (acct && acct.id) || 'rp-unassigned';
-    const key = acctId + '|' + dt.getFullYear() + '-' + dt.getMonth();
-    if (!groups.has(key)) {
-      groups.set(key, {
-        kind: 'remote',
-        id: 'stmt-' + acctId + '-' + dt.getFullYear() + String(dt.getMonth() + 1).padStart(2, '0'),
-        ref: key,
-        period: { y: dt.getFullYear(), m: dt.getMonth() },
-        accountId: acctId,
-        account: acct || BE_A().fromPractice(r.practice, c),
-        reads: [],
-        invoice: null,
-      });
-    }
-    groups.get(key).reads.push(r);
+    ensure(acctId, dt.getFullYear(), dt.getMonth(), acct, r.practice, c).reads.push(r);
+  });
+  Object.values(manualStore || {}).forEach(m => {
+    if (!m || !(m.reads || []).length) return;
+    const acctId = m.accountId || 'rp-unassigned';
+    const acct = BE_A().resolve(accounts, acctId) || BE_A().resolve(accounts, m.accountName);
+    const g = ensure(acctId, m.period.y, m.period.m, acct, m.accountName);
+    (m.reads || []).filter(r => !r.voided).forEach(r => g.reads.push({ ...r, manual: true }));
   });
   const out = [...groups.values()];
   // attach any invoice already saved for that statement
@@ -86,12 +98,12 @@ function beStatements(cases, accounts, statementStore) {
 }
 
 /* ---- everything billable, one list --------------------- */
-function beAll(days, cases, statementStore, overrides) {
+function beAll(days, cases, statementStore, overrides, manualStore) {
   const accounts = BE_A().all(BE_S().CLINICS, cases, overrides);
   const inperson = (days || [])
     .filter(d => (d.patients || []).some(p => !p.cancelled))
     .map(d => beDay(d, accounts));
-  const remote = beStatements(cases, accounts, statementStore);
+  const remote = beStatements(cases, accounts, statementStore, manualStore);
   return { accounts, entities: [...inperson, ...remote] };
 }
 

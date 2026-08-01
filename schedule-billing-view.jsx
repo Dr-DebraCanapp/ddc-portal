@@ -79,7 +79,7 @@ function SbRow({ e, on, onOpen }) {
   );
 }
 
-function BillingView({ entities, accounts, on, onOpenEntity, onEditRates }) {
+function BillingView({ entities, accounts, on, onOpenEntity, onEditRates, onAddPast }) {
   const [filter, setFilter] = useState('open');
   const [kind, setKind] = useState('');
   const [acctId, setAcctId] = useState('');
@@ -118,6 +118,7 @@ function BillingView({ entities, accounts, on, onOpenEntity, onEditRates }) {
             <option value="">All accounts</option>
             {(accounts || []).map(a => <option key={a.id} value={a.id}>{a.name}{a.kind === 'remote' ? ' (remote)' : a.kind === 'both' ? ' (both)' : ''}</option>)}
           </select>
+          {onAddPast && <button className="btn btn-ghost btn-sm" onClick={onAddPast}>Add past work</button>}
           <button className="btn btn-ghost btn-sm" onClick={() => BV().download('ddc-billing-' + BS().iso(new Date(BS().TODAY)) + '.csv', BV().csv(scoped))}>Export CSV</button>
         </div>
       </div>

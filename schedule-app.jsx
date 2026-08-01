@@ -180,12 +180,13 @@ function SchedGate() {
       // remote reads + saved statements, so Billing covers both applications
       if (isAdmin) {
         try {
-          const [rd, st] = await Promise.all([
+          const [rd, st, mr] = await Promise.all([
             window.SchedCloud.loadBillableCases(),
             window.SchedCloud.loadStatements(),
+            window.SchedCloud.loadManualReads(),
           ]);
-          data.reads = rd; data.statements = st;
-        } catch (e) { data.reads = []; data.statements = {}; }
+          data.reads = rd; data.statements = st; data.manualReads = mr;
+        } catch (e) { data.reads = []; data.statements = {}; data.manualReads = {}; }
       }
       // real clock, midnight-anchored
       const now = new Date();
@@ -236,6 +237,7 @@ function ScheduleApp({ profile, boot }) {
 
   const [reads, setReads] = useState(boot.reads || []);          // finalized remote reads
   const [stmts, setStmts] = useState(boot.statements || {});      // statement id → invoice
+  const [manual, setManual] = useState(boot.manualReads || {});   // statement id → historical reads
   const [ledgerView, setLedgerView] = useState('month');
   const [tab, setTab] = useState('calendar');
   const [cur, setCur] = useState([Sx.TODAY.getFullYear(), Sx.TODAY.getMonth()]);
@@ -291,6 +293,12 @@ function ScheduleApp({ profile, boot }) {
       saveDay(updateDay(e.id, d => ({ ...d, status: d.status === 'confirmed' ? 'completed' : d.status, invoice: inv })));
     }
   };
+  /* Historical remote reads — entered by hand, stored beside the statement
+     they belong to so the engine bills them like any other read. */
+  const persistManual = (meta) => {
+    setManual(prev => ({ ...prev, [meta.id]: meta }));
+    Cloud.saveManualReads(meta).catch(oops);
+  };
   const on = {
     assign: (day) => setModal({ type: 'assign', day }),
     // A hospital picking a day doesn't book it — it asks for it, and our
@@ -342,9 +350,9 @@ function ScheduleApp({ profile, boot }) {
     /* ---- invoicing — ONE path for both applications ---- */
     /* An entity is either a clinic day or a monthly remote-read statement.
        persist() puts the invoice back where that entity lives. */
-    issueInvoice: (e) => {
+    issueInvoice: (e, dated) => {
       const B = window.SchedBill;
-      const inv = B.issue(window.SchedEntities.numbers(entities), e, who());
+      const inv = B.issue(window.SchedEntities.numbers(entities), e, who(), dated);
       persistInvoice(e, inv);
       flash('Invoice ' + inv.number + ' issued · Net ' + inv.termsDays + ', due ' + new Date(inv.due).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) + '.');
     },
@@ -403,10 +411,12 @@ function ScheduleApp({ profile, boot }) {
       .filter(x => !days.some(existing => existing.id === x.id));
     if (!fresh.length) { setModal(null); flash('Those days are already on the calendar.'); return; }
     const booked = !!(book && reservedFor);
+    const past = (d) => new Date(d) < Sx.TODAY;
     const rows = fresh.map(x => ({
       id: x.id, date: x.date,
       clinic: booked ? reservedFor : null,
-      status: booked ? 'booked' : 'available',
+      // a day entered after the fact is history, not a booking to be worked
+      status: booked ? (past(x.date) ? 'completed' : 'booked') : 'available',
       reservedFor: booked ? null : (reservedFor || null),
       patients: [], invoice: null,
     }));
@@ -484,7 +494,7 @@ function ScheduleApp({ profile, boot }) {
   // ---- header stats (admin scope) ----
   /* ONE billing model for both applications: clinic days + monthly
      remote-read statements, resolved against the account registry. */
-  const billing = useMemo(() => window.SchedEntities.all(days, reads, stmts), [days, reads, stmts]);
+  const billing = useMemo(() => window.SchedEntities.all(days, reads, stmts, null, manual), [days, reads, stmts, manual]);
   const entities = billing.entities;
   const accounts = billing.accounts;
 
@@ -664,7 +674,7 @@ function ScheduleApp({ profile, boot }) {
 
         {tab === 'account' && isHospital && <window.HospitalAccountView profile={profile} clinic={myClinic} flash={flash} oops={oops} />}
         {tab === 'clinics' && !isHospital && <ClinicsView days={days} role={role} clinicId={clinicId} rev={clinicRev} onEdit={on.editClinic} flash={flash} entities={entities} accounts={accounts} on={on} />}
-        {tab === 'billing' && role === 'admin' && <window.BillingView entities={entities} accounts={accounts} on={on} onOpenEntity={(e) => e.kind === 'inperson' && openDay(e.source || e)} onEditRates={() => setModal({ type: 'rates' })} />}
+        {tab === 'billing' && role === 'admin' && <window.BillingView entities={entities} accounts={accounts} on={on} onOpenEntity={(e) => e.kind === 'inperson' && openDay(e.source || e)} onEditRates={() => setModal({ type: 'rates' })} onAddPast={() => setModal({ type: 'backdate' })} />}
         {tab === 'imaging' && role === 'admin' && <ImagingView incoming={incoming} setIncoming={setIncoming} days={days} flash={flash} oops={oops} />}
       </main>
 
@@ -672,6 +682,16 @@ function ScheduleApp({ profile, boot }) {
       {selected && <window.DayDrawer day={selected} entity={entities.find(e => e.id === selected.id)} entities={entities} role={role} onClose={() => setSelId(null)} on={on} />}
 
       {/* modals */}
+      {modal && modal.type === 'backdate' && window.BackdateModal && (
+        <window.BackdateModal
+          accounts={accounts}
+          manual={manual}
+          flash={flash}
+          onSaveManual={persistManual}
+          onCreateDay={(dt, cid) => { publishDay({ date: dt }, cid, [dt], true); setSelId('cd-' + Sx.iso(dt)); }}
+          onClose={() => setModal(null)}
+        />
+      )}
       {modal && modal.type === 'publish' && <window.AssignClinicModal day={modal.day} role={role} mode="publish" onAssign={(day, cid, dates, book) => publishDay(day, cid, dates, book)} onClose={() => setModal(null)} />}
       {modal && modal.type === 'assign' && <window.AssignClinicModal day={modal.day} role={role} onAssign={(day, cid) => { saveDay(updateDay(day.id, d => ({ ...d, clinic: cid, status: 'booked', reservedFor: null }))); setModal(null); flash('Clinic assigned — roster can now be built.'); }} onClose={() => setModal(null)} />}
       {modal && modal.type === 'patient' && <window.PatientEditorModal day={modal.day} patient={modal.patient} role={role} onSave={savePatient} onClose={() => setModal(null)} />}

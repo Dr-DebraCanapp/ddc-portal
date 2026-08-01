@@ -78,7 +78,8 @@ function MonthGrid({ days, year, month, role, onOpen, onPublish, picking, picked
           // In pick mode the grid becomes a chooser: only the cells you're
           // allowed to pick respond, everything else recedes.
           const pickable = picking === 'open'
-            ? (!day && inMonth && !isPast)
+            // an admin may open a past date — that's how work already done gets entered
+            ? (!day && inMonth)
             : picking === 'request'
               // A hospital may take an open day OR propose a date that isn't
               // on the calendar at all — both arrive as requests to approve.
@@ -128,8 +129,8 @@ function MonthGrid({ days, year, month, role, onOpen, onPublish, picking, picked
                   {clinic && <span className="ev-loc">{clinic.city}, {clinic.state}{clinic.region === 'ca' ? ' ✈' : ''}</span>}
                 </button>
               )}
-              {!day && inMonth && !wknd && !isPast && role === 'admin' && (
-                <button className="sc-open-btn" onClick={() => onPublish(dt)}>+ open this day</button>
+              {!day && inMonth && role === 'admin' && (!wknd || isPast) && (
+                <button className={`sc-open-btn ${isPast ? 'past' : ''}`} onClick={() => onPublish(dt)}>{isPast ? '+ add past day' : '+ open this day'}</button>
               )}
             </div>
           );
@@ -172,7 +173,7 @@ function WeekStrip({ days, anchor, role, onOpen, onPublish }) {
                   {clinic && <span className="ev-loc">{clinic.city}, {clinic.state}</span>}
                 </button>
               )}
-              {!day && !wknd && !isPast && role === 'admin' && <button className="sc-open-btn" style={{ opacity: 1 }} onClick={() => onPublish(dt)}>+ open this day</button>}
+              {!day && role === 'admin' && (!wknd || isPast) && <button className={`sc-open-btn ${isPast ? 'past' : ''}`} style={{ opacity: 1 }} onClick={() => onPublish(dt)}>{isPast ? '+ add past day' : '+ open this day'}</button>}
             </div>
           </div>
         );

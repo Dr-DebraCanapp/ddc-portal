@@ -31,7 +31,7 @@ function CaseReviewView({ id, onBack, session, allCases, onBillingChange }) {
     onBillingChange && onBillingChange();
   };
   const billingOn = {
-    issueInvoice: (e) => persistStmt(e, window.SchedBill.issue(window.SchedEntities.numbers(billing.entities), e, billWho())),
+    issueInvoice: (e, dated) => persistStmt(e, window.SchedBill.issue(window.SchedEntities.numbers(billing.entities), e, billWho(), dated)),
     openPayment: (e) => setPayFor(e.id),
     addPayment: (e, pay) => persistStmt(e, window.SchedBill.logged({ ...(e.invoice || {}), payments: [...((e.invoice && e.invoice.payments) || []), pay] }, billWho(), 'Payment ' + window.SCHED.money(pay.amount))),
     removePayment: (e, pid) => persistStmt(e, window.SchedBill.logged({ ...e.invoice, payments: (e.invoice.payments || []).filter(p => p.id !== pid) }, billWho(), 'Payment removed')),

@@ -266,6 +266,26 @@
       }), 'Could not save the statement');
     },
 
+    /* Historical remote reads entered by hand, stored beside the statement
+       they belong to. Same row as the statement invoice, its own column. */
+    async loadManualReads() {
+      const res = await sb.from('sched_statements').select('id, manual_reads');
+      if (res.error) { if (!/does not exist|schema cache|column/i.test(res.error.message || '')) console.warn('[sched-cloud] manual reads:', res.error.message); return {}; }
+      const map = {};
+      (res.data || []).forEach(r => { if (r.manual_reads && (r.manual_reads.reads || []).length) map[r.id] = r.manual_reads; });
+      return map;
+    },
+    async saveManualReads(meta) {
+      check(await sb.from('sched_statements').upsert({
+        id: meta.id,
+        account_id: meta.accountId || null,
+        account_name: meta.accountName || null,
+        period_year: meta.period.y,
+        period_month: meta.period.m,
+        manual_reads: { reads: meta.reads || [] },
+      }), 'Could not save the historical reads');
+    },
+
     /* ---- remote-read interop ---- */
     async loadOpenCases() {
       const res = await sb.from('cases').select('id, patient, status, referring_clinic').order('submitted', { ascending: false }).limit(100);

@@ -925,3 +925,31 @@
 .sc-ev.requested { border-style: dashed; }
 .sc-pill.requested { background: rgba(177,106,72,0.12); color: var(--clay, #B16A48); border-color: var(--clay, #B16A48); }
 .sc-approve-banner.req { border-left-color: var(--clay, #B16A48); }
+
+
+/* ---- back-entry: work performed before it reached the system ---- */
+.bd-modal { max-width: 720px; }
+.bd-seg { margin-bottom: 18px; }
+.bd-note { font-size: 12.5px; color: var(--ink-3); line-height: 1.55; margin: 14px 0 0; }
+.bd-ym { display: grid; grid-template-columns: 1.4fr 1fr; gap: 8px; }
+.bd-rows { border: 1px solid var(--rule-2); margin-top: 6px; }
+.bd-head, .bd-row { display: grid; grid-template-columns: 1.4fr 1fr 1.5fr 1.5fr 52px 30px; gap: 8px; align-items: center; padding: 8px 10px; }
+.bd-head { background: var(--cream); font-size: 9.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-3); font-weight: 600; border-bottom: 1px solid var(--rule-2); }
+.bd-row { border-bottom: 1px solid var(--rule-2); }
+.bd-row:last-of-type { border-bottom: none; }
+.bd-row .form-input, .bd-row .form-select { margin: 0; font-size: 13px; padding: 7px 9px; }
+.bd-chk { display: flex; justify-content: center; }
+.bd-add { width: 100%; padding: 10px; background: var(--cream); border: none; border-top: 1px solid var(--rule-2); color: var(--clay); font: inherit; font-size: 12px; letter-spacing: 0.06em; font-weight: 600; cursor: pointer; }
+.bd-add:hover { background: rgba(177,106,72,0.07); }
+.bd-total { display: flex; align-items: baseline; justify-content: space-between; margin-top: 16px; padding-top: 12px; border-top: 1.5px solid var(--ink); }
+.bd-total span { font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-3); font-weight: 600; }
+.bd-total strong { font-family: var(--serif); font-size: 26px; letter-spacing: -0.02em; }
+.bd-existing { margin: 4px 0 18px; padding: 12px 14px; background: var(--cream); border: 1px solid var(--rule-2); }
+.bd-ex-row { display: grid; grid-template-columns: 1fr 2fr auto 24px; gap: 10px; align-items: center; padding: 5px 0; font-size: 13px; }
+.bd-ex-row .s { color: var(--ink-3); font-size: 12px; }
+.bd-ex-row .a { font-variant-numeric: tabular-nums; }
+.sc-open-btn.past { color: var(--ink-3); font-style: italic; }
+@media (max-width: 700px) {
+  .bd-head { display: none; }
+  .bd-row { grid-template-columns: 1fr 1fr; }
+}

@@ -21,12 +21,31 @@ function loadAccounts() {
   catch { return []; }
 }
 
+/* Invitation deep-link: /?apply=1&n=&c=&e=&inv=  — sent from the reviewer console */
+function readInvite() {
+  try {
+    const q = new URLSearchParams(window.location.search);
+    if (!q.has('apply')) return null;
+    return {
+      invited: !!q.get('inv'),
+      name: q.get('n') || '',
+      clinic: q.get('c') || '',
+      email: q.get('e') || '',
+    };
+  } catch { return null; }
+}
+const PORTAL_INVITE = readInvite();
+/* Drop the invite params once used, so a refresh lands on the normal sign-in screen. */
+function clearInviteParams() {
+  try { if (PORTAL_INVITE) window.history.replaceState({}, '', window.location.pathname); } catch (e) {}
+}
+
 /* ============================================================
    AUTH GATE — uses Supabase Auth when available, localStorage fallback
    ============================================================ */
 function AuthGate({ children }) {
   const [session, setSession] = pUseState(null);
-  const [view, setView] = pUseState('login');
+  const [view, setView] = pUseState(PORTAL_INVITE ? 'apply' : 'login');
   const [ready, setReady] = pUseState(false);
 
   pUseEffect(() => {
@@ -96,7 +115,7 @@ function AuthGate({ children }) {
   if (!ready) return null;
   if (!session) {
     return view === 'apply'
-      ? <ApplyView onBack={() => setView('login')} />
+      ? <ApplyView onBack={() => { clearInviteParams(); setView('login'); }} invite={PORTAL_INVITE} />
       : <LoginView onLogin={login} onApply={() => setView('apply')} />;
   }
   return children({ session, logout });
@@ -172,14 +191,21 @@ function LoginView({ onLogin, onApply }) {
   );
 }
 
-function ApplyView({ onBack }) {
+function ApplyView({ onBack, invite }) {
   const [submitted, setSubmitted] = pUseState(false);
-  const [data, setData] = pUseState({ name: '', license: '', clinic: '', email: '', phone: '', country: 'USA', state: '', specialty: '', why: '' });
+  const [data, setData] = pUseState({
+    name: (invite && invite.name) || '', license: '',
+    clinic: (invite && invite.clinic) || '',
+    email: (invite && invite.email) || '',
+    phone: '', country: 'USA', state: '', specialty: '', why: '',
+  });
+  const invited = !!(invite && invite.invited);
   const set = (k) => (e) => setData({ ...data, [k]: e.target.value });
   const submit = async (e) => {
     e.preventDefault();
     try { await window.PortalDB.submitApplication(data); }
     catch (err) { alert('Could not submit application: ' + (err.message || err)); return; }
+    clearInviteParams();
     setSubmitted(true);
   };
 
@@ -217,7 +243,7 @@ function ApplyView({ onBack }) {
         </a>
         <div>
           <div className="h">Apply for portal <em style={{fontStyle:'italic', fontWeight:300, color:'var(--tan)'}}>access.</em></div>
-          <p className="l">Open to licensed veterinarians worldwide. Provide your credentials below and Dr. Canapp will personally review your application.</p>
+          <p className="l">{invited ? 'Dr. Canapp has invited you to submit remote-read cases. Confirm the details below and your application goes straight to her for review.' : 'Open to licensed veterinarians worldwide. Provide your credentials below and Dr. Canapp will personally review your application.'}</p>
           <ul className="signals">
             <li>Confirms your veterinary license and active practice</li>
             <li>Establishes your remote-read pathway to Dr. Canapp</li>
@@ -230,6 +256,11 @@ function ApplyView({ onBack }) {
         <div className="auth-form-inner" style={{maxWidth:560}}>
           <div className="eb">§ Apply</div>
           <h1 className="h">Request access.</h1>
+          {invited && (
+            <div className="invite-note">
+              <strong>You've been invited.</strong> {data.name ? data.name.split(',')[0] + ' — your' : 'Your'} details are filled in below; confirm them, add your licence number, and submit.
+            </div>
+          )}
           <form onSubmit={submit}>
             <div className="form-row split">
               <div><label className="form-label">Full name<span className="req">*</span></label><input className="form-input" required value={data.name} onChange={set('name')} placeholder="Dr. First Last, DVM" /></div>
