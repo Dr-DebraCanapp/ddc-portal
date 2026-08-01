@@ -18,7 +18,7 @@ function InviteHospitalModal({ onClose, flash }) {
   const body = [
     f.contact.trim() ? `Dear ${f.contact.trim()},` : 'Hello,',
     '',
-    `I'd like to invite ${f.hospital.trim() || 'your hospital'} to host an in-person diagnostic musculoskeletal ultrasound clinic with Dr. Debra Canapp, DVM, DACVSMR.`,
+    `I'd like to invite ${f.hospital.trim() || 'your hospital'} to host in-person diagnostic musculoskeletal ultrasounds with Dr. Debra Canapp, DVM, DACVSMR.`,
     '',
     ...(f.note.trim() ? [f.note.trim(), ''] : []),
     'To get started, please complete the short hospital form here:',
@@ -29,7 +29,8 @@ function InviteHospitalModal({ onClose, flash }) {
     'Any questions, just reply to this message.',
     '',
     'With thanks,',
-    'Dr. Debra Canapp, DVM, DACVSMR',
+    'Ally Canapp - Li',
+    '',
     'info@DrDebraCanapp.com',
   ].join('\n');
 
