@@ -144,6 +144,7 @@ function Footer() {
               <li><a href="mailto:info@drdebracanapp.com">info@drdebracanapp.com</a></li>
               <li style={{marginTop:12}}><a href="#contact">Send a message via the contact form</a></li>
               <li style={{marginTop:12}}><a href="portal.html" style={{color:'var(--tan)'}}>Referral portal · sign in →</a></li>
+              <li style={{marginTop:12}}><a href="Schedule.html" style={{color:'var(--tan)'}}>Hospital scheduling · sign in →</a></li>
               <li style={{marginTop:8}}><a href="Console.html" style={{color:'var(--ink-4,#8a8f86)',fontSize:12}}>Staff sign-in →</a></li>
             </ul>
           </div>
