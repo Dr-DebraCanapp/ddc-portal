@@ -590,7 +590,9 @@
     return { session };
   }
   async function signOut() {
-    await sb.auth.signOut();
+    // 'local' clears this browser only. The default ('global') revokes every
+    // session that user holds anywhere, which signs out their other machines.
+    await sb.auth.signOut({ scope: 'local' });
   }
   async function signUpVet({ email, password, name, clinic }) {
     const { data, error } = await sb.auth.signUp({

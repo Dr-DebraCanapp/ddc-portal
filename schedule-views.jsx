@@ -80,7 +80,9 @@ function MonthGrid({ days, year, month, role, onOpen, onPublish, picking, picked
           const pickable = picking === 'open'
             ? (!day && inMonth && !isPast)
             : picking === 'request'
-              ? (!!day && day.status === 'available' && !isPast)
+              // A hospital may take an open day OR propose a date that isn't
+              // on the calendar at all — both arrive as requests to approve.
+              ? (inMonth && !isPast && (!day || day.status === 'available'))
               : false;
           if (picking) {
             const on = pickable && isPicked(dt);
@@ -93,7 +95,7 @@ function MonthGrid({ days, year, month, role, onOpen, onPublish, picking, picked
                 {pickable
                   ? <button className={`sc-pick ${on ? 'on' : ''}`} onClick={() => onPick(dt)}>
                       <span className="bx">{on ? '✓' : ''}</span>
-                      <span className="tx">{on ? 'Picked' : (picking === 'open' ? 'Open this day' : 'Pick this day')}</span>
+                      <span className="tx">{on ? 'Picked' : (picking === 'open' ? 'Open this day' : day ? 'Take this day' : 'Ask for this day')}</span>
                     </button>
                   : day
                     ? <div className="sc-pick-static">{day.status === 'available' ? 'Open day' : (clinic ? clinic.name.replace(/ (Hospital|Veterinary|Animal|Clinic|Center|Specialists).*$/, '') : 'Clinic day')}</div>

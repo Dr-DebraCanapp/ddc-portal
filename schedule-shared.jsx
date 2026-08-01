@@ -518,6 +518,9 @@ function AssignClinicModal({ day, role, mode, onAssign, onClose }) {
      Defaults to just the day clicked, so the simple case stays one click. */
   const [thru, setThru] = useState('');
   const [wds, setWds] = useState(null); // null = follow the held hospital / all weekdays
+  /* With a hospital chosen, the day can either be held for them to claim,
+     or booked outright — most dates are agreed on the phone first. */
+  const [book, setBook] = useState(true);
   const held = sel ? S().clinic(sel) : null;
   const defaultWds = (held && (held.bookingDays || []).length) ? held.bookingDays : [1, 2, 3, 4, 5];
   const activeWds = wds || defaultWds;
@@ -548,18 +551,33 @@ function AssignClinicModal({ day, role, mode, onAssign, onClose }) {
         <h2 className="sc-modal-h">{isPublish ? (dates.length > 1 ? `Publish ${dates.length} days` : 'Publish this day') : isClinic ? 'Claim this open day' : 'Which clinic is this day for?'}</h2>
         <p className="sc-modal-sub">
           {isPublish
-            ? 'Leave the hospital blank to let any clinic book these, or hold them for one hospital so only they can claim them.'
+            ? 'Leave the hospital blank to let any clinic book these. Choose a hospital and you can either book the days outright or hold them for the hospital to claim.'
             : isClinic
             ? 'You are booking Dr. Canapp for an in-person MSK ultrasound day at your hospital. After booking, add the patients you want seen.'
             : 'Attach a hospital to this open day. They can then load their patient roster.'}
         </p>
         <div className="form-row">
-          <label className="form-label">{isPublish ? 'Hold for a specific hospital (optional)' : 'Clinic / hospital'}</label>
+          <label className="form-label">{isPublish ? 'Which hospital (optional)' : 'Clinic / hospital'}</label>
           <select className="form-select" value={sel} onChange={e => { setSel(e.target.value); setWds(null); }}>
             <option value="">{isPublish ? 'Open to any hospital' : 'Select a clinic…'}</option>
             {S().CLINICS.map(c => <option key={c.id} value={c.id}>{c.name} — {c.city}, {c.state}</option>)}
           </select>
         </div>
+
+        {isPublish && sel && (
+          <div className="form-row" style={{ marginTop: 12 }}>
+            <label className="form-label">And are these agreed already?</label>
+            <div className="sc-chiprow">
+              <button className={`sc-chip ${book ? 'on' : ''}`} onClick={() => setBook(true)}>Book outright</button>
+              <button className={`sc-chip ${!book ? 'on' : ''}`} onClick={() => setBook(false)}>Hold for them to claim</button>
+            </div>
+            <div className="form-help">
+              {book
+                ? `Booked and on both calendars. ${held ? held.name : 'They'} can load their roster straight away.`
+                : `Only ${held ? held.name : 'they'} will see the days, and nothing is confirmed until they claim them.`}
+            </div>
+          </div>
+        )}
 
         {isPublish && (
           <React.Fragment>
@@ -581,7 +599,7 @@ function AssignClinicModal({ day, role, mode, onAssign, onClose }) {
             )}
             {dates.length > 1 && (
               <div className="sc-fee-preview" style={{ marginTop: 10 }}>
-                <div className="line"><span>{dates.length} days will open</span><b>{S().fmtLong(dates[0])} – {S().fmtLong(dates[dates.length - 1])}</b></div>
+                <div className="line"><span>{dates.length} days will {sel && book ? 'be booked' : 'open'}</span><b>{S().fmtLong(dates[0])} – {S().fmtLong(dates[dates.length - 1])}</b></div>
                 <div className="line" style={{ color: 'var(--ink-4)', fontSize: 11.5 }}><span>{dates.slice(0, 8).map(d => S().fmtLong(d).replace(/^\w+, /, '')).join(' · ')}{dates.length > 8 ? ' · +' + (dates.length - 8) + ' more' : ''}</span></div>
               </div>
             )}
@@ -590,8 +608,12 @@ function AssignClinicModal({ day, role, mode, onAssign, onClose }) {
 
         <div className="sc-modal-actions">
           <button className="btn btn-ghost" onClick={onClose}>Cancel</button>
-          <button className="btn btn-clay" disabled={!isPublish && !sel} onClick={() => onAssign(day, sel, isPublish ? dates : null)}>
-            {isPublish ? (dates.length > 1 ? `Publish ${dates.length} days` : 'Publish day') : isClinic ? 'Book this day' : 'Assign clinic'}
+          <button className="btn btn-clay" disabled={!isPublish && !sel} onClick={() => onAssign(day, sel, isPublish ? dates : null, isPublish && !!sel && book)}>
+            {isPublish
+              ? (sel && book
+                  ? (dates.length > 1 ? `Book ${dates.length} days` : 'Book this day')
+                  : (dates.length > 1 ? `Publish ${dates.length} days` : 'Publish day'))
+              : isClinic ? 'Book this day' : 'Assign clinic'}
           </button>
         </div>
       </div>

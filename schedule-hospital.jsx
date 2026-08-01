@@ -153,8 +153,8 @@ function RequestDaysModal({ clinic, profile, onClose, flash }) {
     <div className="sc-modal-overlay" onClick={onClose}>
       <div className="sc-modal" onClick={ev => ev.stopPropagation()}>
         <div className="sc-modal-eyebrow">Calendar · request days</div>
-        <h2 className="sc-modal-h">Ask for clinic days</h2>
-        <p className="sc-modal-sub">Tell us when suits and roughly how many patients. We’ll open the days on your calendar and you’ll book them from there.</p>
+        <h2 className="sc-modal-h">Send us a note</h2>
+        <p className="sc-modal-sub">For anything the calendar can’t say — a run of consecutive days, a backlog you’d like seen, or dates you’re still working out. To ask for specific dates, use <strong>Request days</strong> on the calendar instead; those reach us straight away.</p>
         <div className="sc-pat-grid">
           <div className="form-row"><label className="form-label">Earliest date<span className="req">*</span></label><input className="form-input" type="date" value={f.from} onChange={ev => setF({ ...f, from: ev.target.value })} /></div>
           <div className="form-row"><label className="form-label">Latest date</label><input className="form-input" type="date" value={f.to} onChange={ev => setF({ ...f, to: ev.target.value })} /><div className="form-help">Leave blank if it’s one specific day.</div></div>

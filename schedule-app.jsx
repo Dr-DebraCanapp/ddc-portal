@@ -396,18 +396,32 @@ function ScheduleApp({ profile, boot }) {
     setModal({ type: 'publish', day: { id, date: new Date(dt) } });
   };
   /* Publish one day, or a whole block. Dates already on the calendar are skipped. */
-  const publishDay = (day, reservedFor, dates) => {
+  const publishDay = (day, reservedFor, dates, book) => {
     const list = (dates && dates.length ? dates : [day.date]).map(d => new Date(d));
     const fresh = list
       .map(d => ({ id: 'cd-' + Sx.iso(d), date: d }))
       .filter(x => !days.some(existing => existing.id === x.id));
     if (!fresh.length) { setModal(null); flash('Those days are already on the calendar.'); return; }
-    const rows = fresh.map(x => ({ id: x.id, date: x.date, clinic: null, status: 'available', reservedFor: reservedFor || null, patients: [], invoice: null }));
+    const booked = !!(book && reservedFor);
+    const rows = fresh.map(x => ({
+      id: x.id, date: x.date,
+      clinic: booked ? reservedFor : null,
+      status: booked ? 'booked' : 'available',
+      reservedFor: booked ? null : (reservedFor || null),
+      patients: [], invoice: null,
+    }));
     setDays(prev => [...prev, ...rows]);
     rows.forEach(r => Cloud.saveDay(r).catch(oops));
     setModal(null);
-    const who = reservedFor ? ' held for ' + (Sx.clinic(reservedFor) || {}).name : '';
-    flash(rows.length === 1 ? 'Day published' + who + '.' : rows.length + ' days published' + who + '.');
+    const name = reservedFor ? (Sx.clinic(reservedFor) || {}).name : '';
+    if (booked) {
+      flash(rows.length === 1
+        ? 'Day booked for ' + name + '. They can load their roster now.'
+        : rows.length + ' days booked for ' + name + '. They can load their rosters now.');
+    } else {
+      const who = reservedFor ? ' held for ' + name : '';
+      flash(rows.length === 1 ? 'Day published' + who + '.' : rows.length + ' days published' + who + '.');
+    }
   };
 
   const savePatient = async (day, data) => {
@@ -446,14 +460,20 @@ function ScheduleApp({ profile, boot }) {
     }
     const by = (profile && (profile.name || profile.email)) || 'the hospital';
     const at = new Date();
-    const ids = dates.map(d => 'cd-' + Sx.iso(d));
-    setDays(prev => prev.map(d => ids.indexOf(d.id) > -1 && d.status === 'available'
-      ? { ...d, clinic: clinicId, status: 'requested', reservedFor: null, requestedBy: by, requestedAt: at }
-      : d));
+    const req = (d) => ({ ...d, clinic: clinicId, status: 'requested', reservedFor: null, requestedBy: by, requestedAt: at });
+    /* Two kinds of pick: an open day the hospital is taking, and a date that
+       isn't on the calendar at all, which they're proposing. Both land as
+       requests for the office to approve. */
+    const existing = dates.filter(d => days.some(x => x.id === 'cd-' + Sx.iso(d) && x.status === 'available'));
+    const proposed = dates.filter(d => !days.some(x => x.id === 'cd-' + Sx.iso(d)));
+    const ids = existing.map(d => 'cd-' + Sx.iso(d));
+    const fresh = proposed.map(d => req({ id: 'cd-' + Sx.iso(d), date: d, patients: [], invoice: null }));
+    setDays(prev => [...prev.map(d => ids.indexOf(d.id) > -1 && d.status === 'available' ? req(d) : d), ...fresh]);
+    fresh.forEach(r => Cloud.saveDay(r).catch(oops));
     ids.forEach(id => {
       const src = days.find(d => d.id === id);
       if (src && src.status === 'available') {
-        Cloud.saveDay({ ...src, clinic: clinicId, status: 'requested', reservedFor: null, requestedBy: by, requestedAt: at }).catch(oops);
+        Cloud.saveDay(req(src)).catch(oops);
       }
     });
     setPick(null);
@@ -597,8 +617,8 @@ function ScheduleApp({ profile, boot }) {
                 </div>
                 <div className="sc-caltools-right">
                   {role === 'admin' && !pick && <button className="btn btn-clay btn-sm" onClick={() => startPick('open')}>+ Open days</button>}
-                  {isHospital && !pick && <button className="btn btn-clay btn-sm" onClick={() => startPick('request')}>Pick days to request</button>}
-                  {isHospital && !pick && <button className="btn btn-ghost btn-sm" onClick={() => setModal({ type: 'reqdays' })}>None of these suit us</button>}
+                  {isHospital && !pick && <button className="btn btn-clay btn-sm" onClick={() => startPick('request')}>Request days</button>}
+                  {isHospital && !pick && <button className="btn btn-ghost btn-sm" onClick={() => setModal({ type: 'reqdays' })}>Send a note instead</button>}
                   <div className="sc-legend">
                     <span className="lg"><span className="sw avail" />Open</span>
                     <span className="lg"><span className="sw booked" />Booked</span>
@@ -615,8 +635,8 @@ function ScheduleApp({ profile, boot }) {
 
             {isHospital && days.length === 0 && (
               <div className="sc-empty" style={{ marginBottom: 18 }}>
-                <div className="eh">No clinic days open yet</div>
-                <p>When we open a day for you it appears on the calendar below. Use <strong>Pick days to request</strong> above to choose the ones that suit you — we'll confirm them, then you can add the patients you'd like Dr. Canapp to see.</p>
+                <div className="eh">No clinic days on the calendar yet</div>
+                <p>Use <strong>Request days</strong> above to pick the dates that suit you — any weekday will do, whether or not we've opened it. We'll confirm them, then you can load your roster. Days we open for you appear here too.</p>
               </div>
             )}
             {pick && (
@@ -652,7 +672,7 @@ function ScheduleApp({ profile, boot }) {
       {selected && <window.DayDrawer day={selected} entity={entities.find(e => e.id === selected.id)} entities={entities} role={role} onClose={() => setSelId(null)} on={on} />}
 
       {/* modals */}
-      {modal && modal.type === 'publish' && <window.AssignClinicModal day={modal.day} role={role} mode="publish" onAssign={(day, cid, dates) => publishDay(day, cid, dates)} onClose={() => setModal(null)} />}
+      {modal && modal.type === 'publish' && <window.AssignClinicModal day={modal.day} role={role} mode="publish" onAssign={(day, cid, dates, book) => publishDay(day, cid, dates, book)} onClose={() => setModal(null)} />}
       {modal && modal.type === 'assign' && <window.AssignClinicModal day={modal.day} role={role} onAssign={(day, cid) => { saveDay(updateDay(day.id, d => ({ ...d, clinic: cid, status: 'booked', reservedFor: null }))); setModal(null); flash('Clinic assigned — roster can now be built.'); }} onClose={() => setModal(null)} />}
       {modal && modal.type === 'patient' && <window.PatientEditorModal day={modal.day} patient={modal.patient} role={role} onSave={savePatient} onClose={() => setModal(null)} />}
       {modal && modal.type === 'reqdays' && window.RequestDaysModal && <window.RequestDaysModal clinic={myClinic} profile={profile} onClose={() => setModal(null)} flash={flash} />}

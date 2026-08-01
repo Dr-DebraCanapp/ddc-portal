@@ -157,7 +157,7 @@
     },
     // reload:false is for the wrong-door flow — we clear the session but stay
     // on the page so the notice explaining where to go remains on screen.
-    async signOut(reload = true) { await sb.auth.signOut(); if (reload) window.location.reload(); },
+    async signOut(reload = true) { await sb.auth.signOut({ scope: 'local' }); if (reload) window.location.reload(); },
 
     /* ---- loading ---- */
     async loadAll(isAdmin) {
