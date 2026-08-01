@@ -140,6 +140,8 @@
     function Console() {
       const [phase, setPhase] = useState('boot'); // boot | signin | ready | error
       const [denied, setDenied] = useState(false);
+      const deniedRef = React.useRef(false);
+      React.useEffect(() => { deniedRef.current = denied; }, [denied]);
       const [view, setView] = useState('work'); // work | admin
       const [err, setErr] = useState('');
       const [profile, setProfile] = useState(null);
@@ -151,7 +153,7 @@
           if (!prof) { setPhase('signin'); return; }
           if (prof.role !== 'reviewer' && prof.role !== 'admin') {
             // Sign them out, or a refresh lands straight back on the same wall.
-            try { await Cloud.signOut(); } catch (e) {}
+            try { await Cloud.signOut(false); } catch (e) {}
             setDenied(true); setPhase('signin'); return;
           }
           const sb = Cloud.client;
@@ -177,7 +179,9 @@
           load();
         })();
         // live: refresh when either world changes
-        if (Cloud && Cloud.configured) return Cloud.subscribe(() => load());
+        // Don't re-run load() while the wrong-door notice is up — the sign-out
+        // that raised it would immediately tear it back down.
+        if (Cloud && Cloud.configured) return Cloud.subscribe(() => { if (!deniedRef.current) load(); });
       }, []);
 
       if (phase === 'signin') return <SignIn onIn={load} denied={denied} onDismiss={() => setDenied(false)} />;

@@ -166,11 +166,11 @@ function SchedGate() {
       if (!prof) { setPhase('signin'); return; }
       // Wrong door: sign them out first, or a refresh strands them on the wall.
       if (prof.role === 'vet') {
-        try { await window.SchedCloud.signOut(); } catch (e) {}
+        try { await window.SchedCloud.signOut(false); } catch (e) {}
         setDenied('vet'); setPhase('signin'); return;
       }
       if (prof.role === 'hospital' && !prof.sched_clinic_id) {
-        try { await window.SchedCloud.signOut(); } catch (e) {}
+        try { await window.SchedCloud.signOut(false); } catch (e) {}
         setDenied('unlinked'); setPhase('signin'); return;
       }
       const isAdmin = prof.role === 'reviewer' || prof.role === 'admin';
@@ -293,7 +293,28 @@ function ScheduleApp({ profile, boot }) {
   };
   const on = {
     assign: (day) => setModal({ type: 'assign', day }),
-    book: (day) => { saveDay(updateDay(day.id, d => ({ ...d, clinic: clinicId, status: 'booked', reservedFor: null }))); flash('Day booked. Add the patients you want seen.'); },
+    // A hospital picking a day doesn't book it — it asks for it, and our
+    // office approves. Admins picking a day book it outright.
+    book: (day) => {
+      if (role === 'admin') {
+        saveDay(updateDay(day.id, d => ({ ...d, clinic: clinicId, status: 'booked', reservedFor: null })));
+        flash('Day booked. Add the patients you want seen.');
+        return;
+      }
+      const by = (profile && (profile.name || profile.email)) || 'the hospital';
+      saveDay(updateDay(day.id, d => ({ ...d, clinic: clinicId, status: 'requested', reservedFor: null, requestedBy: by, requestedAt: new Date() })));
+      setSelId(null);
+      flash('Day requested — our office will confirm it shortly.');
+    },
+    approveDay: (day) => { saveDay(updateDay(day.id, d => ({ ...d, status: 'booked' }))); flash('Day approved — the hospital can add patients now.'); },
+    declineDay: (day) => {
+      saveDay(updateDay(day.id, d => ({ ...d, status: 'available', clinic: null, requestedBy: null, requestedAt: null })));
+      setSelId(null); flash('Request declined — the day is open again.');
+    },
+    withdrawRequest: (day) => {
+      saveDay(updateDay(day.id, d => ({ ...d, status: 'available', clinic: null, requestedBy: null, requestedAt: null })));
+      setSelId(null); flash('Request withdrawn.');
+    },
     unpublish: (day) => { setDays(prev => prev.filter(d => d.id !== day.id)); setSelId(null); Cloud.deleteDay(day.id).catch(oops); flash('Open day removed.'); },
     addPatient: (day) => setModal({ type: 'patient', day, patient: null }),
     editPatient: (day, patient) => setModal({ type: 'patient', day, patient }),
@@ -406,6 +427,39 @@ function ScheduleApp({ profile, boot }) {
     flash(isNew ? 'Patient added to the day.' : 'Patient updated.');
   };
 
+  /* ---- picking days on the calendar ------------------------------
+     One chooser, two meanings: admins pick empty dates to OPEN them,
+     hospitals pick open dates to REQUEST them. */
+  const [pick, setPick] = useState(null); // null | { mode:'open'|'request', dates:[iso] }
+  const startPick = (mode) => { setLedgerView('month'); setPick({ mode, dates: [] }); };
+  const togglePick = (dt) => {
+    const key = Sx.iso(dt);
+    setPick(p => !p ? p : ({ ...p, dates: p.dates.indexOf(key) > -1 ? p.dates.filter(x => x !== key) : [...p.dates, key] }));
+  };
+  const commitPick = () => {
+    if (!pick || !pick.dates.length) return;
+    const dates = [...pick.dates].sort().map(s => { const [Y, M, D] = s.split('-').map(Number); return new Date(Y, M - 1, D); });
+    if (pick.mode === 'open') {
+      publishDay({ date: dates[0] }, null, dates);
+      setPick(null);
+      return;
+    }
+    const by = (profile && (profile.name || profile.email)) || 'the hospital';
+    const at = new Date();
+    const ids = dates.map(d => 'cd-' + Sx.iso(d));
+    setDays(prev => prev.map(d => ids.indexOf(d.id) > -1 && d.status === 'available'
+      ? { ...d, clinic: clinicId, status: 'requested', reservedFor: null, requestedBy: by, requestedAt: at }
+      : d));
+    ids.forEach(id => {
+      const src = days.find(d => d.id === id);
+      if (src && src.status === 'available') {
+        Cloud.saveDay({ ...src, clinic: clinicId, status: 'requested', reservedFor: null, requestedBy: by, requestedAt: at }).catch(oops);
+      }
+    });
+    setPick(null);
+    flash(dates.length === 1 ? 'Day requested — our office will confirm it shortly.' : dates.length + ' days requested — our office will confirm them shortly.');
+  };
+
   const openDay = (day) => setSelId(day.id);
   // ---- header stats (admin scope) ----
   /* ONE billing model for both applications: clinic days + monthly
@@ -426,6 +480,7 @@ function ScheduleApp({ profile, boot }) {
   }, [days]);
 
   const pendingDays = useMemo(() => days.filter(d => d.status === 'submitted').sort((a, b) => a.date - b.date), [days]);
+  const requestedDays = useMemo(() => days.filter(d => d.status === 'requested').sort((a, b) => a.date - b.date), [days]);
   const imagingUnrouted = incoming.filter(s => s.status === 'unrouted').length;
 
   const [y, m] = cur;
@@ -480,6 +535,26 @@ function ScheduleApp({ profile, boot }) {
 
         {tab === 'calendar' && (
           <React.Fragment>
+            {role === 'admin' && requestedDays.length > 0 && (
+              <div className="sc-approve-banner req">
+                <div className="sc-approve-banner-h">
+                  <span className="ic">◔</span>
+                  <span><strong>{requestedDays.length} day request{requestedDays.length === 1 ? '' : 's'}</strong> from hospitals</span>
+                </div>
+                <div className="sc-approve-list">
+                  {requestedDays.map(dd => {
+                    const c = dd.clinic ? Sx.clinic(dd.clinic) : null;
+                    return (
+                      <button key={dd.id} className="sc-approve-item" onClick={() => openDay(dd)}>
+                        <span className="d">{Sx.MONTHS[dd.date.getMonth()].slice(0, 3)} {dd.date.getDate()}</span>
+                        <span className="c">{c ? c.name : 'Hospital'}</span>
+                        <span className="go">Review →</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
             {role === 'admin' && pendingDays.length > 0 && (
               <div className="sc-approve-banner">
                 <div className="sc-approve-banner-h">
@@ -521,7 +596,9 @@ function ScheduleApp({ profile, boot }) {
                   <button className="sc-today-btn" onClick={() => { setCur([Sx.TODAY.getFullYear(), Sx.TODAY.getMonth()]); setAnchor(new Date(Sx.TODAY)); }}>Today</button>
                 </div>
                 <div className="sc-caltools-right">
-                  {isHospital && <button className="btn btn-clay btn-sm" onClick={() => setModal({ type: 'reqdays' })}>Request clinic days</button>}
+                  {role === 'admin' && !pick && <button className="btn btn-clay btn-sm" onClick={() => startPick('open')}>+ Open days</button>}
+                  {isHospital && !pick && <button className="btn btn-clay btn-sm" onClick={() => startPick('request')}>Pick days to request</button>}
+                  {isHospital && !pick && <button className="btn btn-ghost btn-sm" onClick={() => setModal({ type: 'reqdays' })}>None of these suit us</button>}
                   <div className="sc-legend">
                     <span className="lg"><span className="sw avail" />Open</span>
                     <span className="lg"><span className="sw booked" />Booked</span>
@@ -539,11 +616,29 @@ function ScheduleApp({ profile, boot }) {
             {isHospital && days.length === 0 && (
               <div className="sc-empty" style={{ marginBottom: 18 }}>
                 <div className="eh">No clinic days open yet</div>
-                <p>When we open a day for you it appears on the calendar below — book it, then add the patients you'd like Dr. Canapp to see. Use <strong>Request clinic days</strong> above to tell us when suits.</p>
+                <p>When we open a day for you it appears on the calendar below. Use <strong>Pick days to request</strong> above to choose the ones that suit you — we'll confirm them, then you can add the patients you'd like Dr. Canapp to see.</p>
               </div>
             )}
-            {ledgerView === 'month' && <MonthGrid days={visible} year={y} month={m} role={role} onOpen={openDay} onPublish={onPublish} />}
-            {ledgerView === 'week' && <WeekStrip days={visible} anchor={anchor} role={role} onOpen={openDay} onPublish={onPublish} />}
+            {pick && (
+              <div className="sc-pickbar">
+                <div className="pb-txt">
+                  <strong>{pick.dates.length || 'No'} day{pick.dates.length === 1 ? '' : 's'} picked</strong>
+                  <span>{pick.mode === 'open'
+                    ? 'Click any empty date to offer it. Change month with the arrows — your picks are kept.'
+                    : 'Click the open days that suit you. We\u2019ll confirm them before you add patients.'}</span>
+                </div>
+                <div className="pb-act">
+                  <button className="btn btn-ghost btn-sm" onClick={() => setPick(null)}>Cancel</button>
+                  <button className="btn btn-clay btn-sm" disabled={!pick.dates.length} onClick={commitPick}>
+                    {pick.mode === 'open'
+                      ? (pick.dates.length > 1 ? 'Open these ' + pick.dates.length + ' days' : 'Open this day')
+                      : (pick.dates.length > 1 ? 'Request these ' + pick.dates.length + ' days' : 'Request this day')}
+                  </button>
+                </div>
+              </div>
+            )}
+            {ledgerView === 'month' && <MonthGrid days={visible} year={y} month={m} role={role} onOpen={openDay} onPublish={onPublish} picking={pick && pick.mode} picked={pick && pick.dates} onPick={togglePick} />}
+            {ledgerView === 'week' && !pick && <WeekStrip days={visible} anchor={anchor} role={role} onOpen={openDay} onPublish={onPublish} />}
           </React.Fragment>
         )}
 

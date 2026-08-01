@@ -95,6 +95,8 @@
       status: r.status, reservedFor: r.reserved_for || null,
       submittedBy: r.submitted_by || null,
       submittedAt: r.submitted_at ? new Date(r.submitted_at) : null,
+      requestedBy: r.requested_by || null,
+      requestedAt: r.requested_at ? new Date(r.requested_at) : null,
       signoff: r.signoff || null,
       invoice: r.invoice ? { ...r.invoice, issued: r.invoice.issued ? new Date(r.invoice.issued) : null } : null,
       patients: (patients || []).sort((a, b) => (a.position - b.position) || String(a.id).localeCompare(String(b.id))),
@@ -105,6 +107,8 @@
       id: d.id, date: dateOnly(d.date), clinic_id: d.clinic || null, status: d.status,
       reserved_for: d.reservedFor || null, submitted_by: d.submittedBy || null,
       submitted_at: d.submittedAt ? new Date(d.submittedAt).toISOString() : null,
+      requested_by: d.requestedBy || null,
+      requested_at: d.requestedAt ? new Date(d.requestedAt).toISOString() : null,
       signoff: d.signoff || null,
       invoice: d.invoice ? { ...d.invoice, issued: d.invoice.issued ? new Date(d.invoice.issued).toISOString() : null } : null,
     };
@@ -151,7 +155,9 @@
       if (error) throw new Error(error.message);
       return data.session;
     },
-    async signOut() { await sb.auth.signOut(); window.location.reload(); },
+    // reload:false is for the wrong-door flow — we clear the session but stay
+    // on the page so the notice explaining where to go remains on screen.
+    async signOut(reload = true) { await sb.auth.signOut(); if (reload) window.location.reload(); },
 
     /* ---- loading ---- */
     async loadAll(isAdmin) {

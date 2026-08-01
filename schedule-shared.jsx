@@ -11,7 +11,7 @@ const S = () => window.SCHED;
 
 /* ---- small atoms ------------------------------------------- */
 function SchedPill({ status }) {
-  const label = { available: 'Open day', booked: 'Booked', submitted: 'Awaiting approval', confirmed: 'Confirmed', completed: 'Completed' }[status] || status;
+  const label = { available: 'Open day', requested: 'Requested', booked: 'Booked', submitted: 'Awaiting approval', confirmed: 'Confirmed', completed: 'Completed' }[status] || status;
   return <span className={`sc-pill ${status}`}>{label}</span>;
 }
 
@@ -152,6 +152,9 @@ function DayDrawer({ day, entity, entities, role, onClose, on }) {
     if (day.status === 'available') {
       footer.push(<button key="a" className="btn btn-clay" onClick={() => on.assign(day)}>Assign a clinic</button>);
       footer.push(<button key="u" className="btn btn-ghost" onClick={() => on.unpublish(day)}>Unpublish day</button>);
+    } else if (day.status === 'requested') {
+      footer.push(<button key="dc" className="btn btn-ghost" onClick={() => on.declineDay(day)}>Decline</button>);
+      footer.push(<button key="ac" className="btn btn-clay" onClick={() => on.approveDay(day)}>Approve this day</button>);
     } else if (day.status === 'booked') {
       footer.push(<button key="ap" className="btn" onClick={() => on.addPatient(day)}>Add patient</button>);
       footer.push(<button key="c" className="btn btn-clay" onClick={() => on.approve(day)}>Confirm roster</button>);
@@ -168,7 +171,9 @@ function DayDrawer({ day, entity, entities, role, onClose, on }) {
   } else {
     // clinic role
     if (day.status === 'available') {
-      footer.push(<button key="b" className="btn btn-clay" onClick={() => on.book(day)}>Book this day</button>);
+      footer.push(<button key="b" className="btn btn-clay" onClick={() => on.book(day)}>Request this day</button>);
+    } else if (day.status === 'requested') {
+      footer.push(<button key="wr" className="btn btn-ghost" onClick={() => on.withdrawRequest(day)}>Withdraw request</button>);
     } else if (day.status === 'booked') {
       footer.push(<button key="ap" className="btn" onClick={() => on.addPatient(day)}>Add patient</button>);
       footer.push(<button key="s" className="btn btn-clay" onClick={() => on.submit(day)}>Submit for approval</button>);
@@ -197,6 +202,16 @@ function DayDrawer({ day, entity, entities, role, onClose, on }) {
         </div>
 
         <div className="sc-drawer-body">
+          {day.status === 'requested' && (
+            <div className={`sc-approve-note ${role === 'admin' ? 'admin' : ''}`}>
+              <span className="ic">{role === 'admin' ? '◑' : '⏳'}</span>
+              <div>
+                {role === 'admin'
+                  ? <><strong>A hospital has asked for this day.</strong> {clinic ? clinic.name : 'They'} picked it{day.requestedBy ? <> — {day.requestedBy}</> : ''}{day.requestedAt ? <> on {S().fmtLong(new Date(day.requestedAt))}</> : ''}. <strong>Approve</strong> and they can start adding patients, or <strong>Decline</strong> to put the day back on offer.</>
+                  : <><strong>Requested — waiting on our office.</strong> We'll confirm this day shortly. Once it's approved you can add the patients you'd like seen.</>}
+              </div>
+            </div>
+          )}
           {day.status === 'submitted' && (
             <div className={`sc-approve-note ${role === 'admin' ? 'admin' : ''}`}>
               <span className="ic">{role === 'admin' ? '◑' : '⏳'}</span>

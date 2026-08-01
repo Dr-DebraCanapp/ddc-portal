@@ -242,7 +242,7 @@
           if (!prof) { setPhase('signin'); return; }
           setProfile(prof);
           if (prof.role !== 'reviewer' && prof.role !== 'admin') {
-            try { await Cloud.signOut(); } catch (e) {}
+            try { await Cloud.signOut(false); } catch (e) {}
             setDenied(true); setPhase('signin'); return;
           }
           const { data, error } = await Cloud.client.from('sched_visit_requests').select('*').order('submitted_at', { ascending: false });

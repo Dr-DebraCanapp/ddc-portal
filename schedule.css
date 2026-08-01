@@ -166,7 +166,7 @@
   margin-top: auto; align-self: flex-start;
   font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-4);
   background: transparent; border: none; cursor: pointer; padding: 2px 0;
-  opacity: 0; transition: opacity 0.15s, color 0.15s;
+  opacity: 0.45; transition: opacity 0.15s, color 0.15s;
 }
 .sc-cell:hover .sc-open-btn { opacity: 1; }
 .sc-open-btn:hover { color: var(--clay); }
@@ -905,3 +905,23 @@
 .ha-note{font-size:12px;line-height:1.6;color:var(--ink-3)}
 .ha-note b{color:var(--ink-2)}
 @media(max-width:980px){.ha-grid{grid-template-columns:1fr}}
+
+/* ---- picking days (admin opens, hospital requests) ---- */
+.sc-pickbar { position: sticky; top: 0; z-index: 8; display: flex; align-items: center; justify-content: space-between; gap: 18px; flex-wrap: wrap; margin-bottom: 14px; padding: 13px 18px; background: var(--ink, #1f231f); color: #fff; }
+.sc-pickbar .pb-txt { display: grid; gap: 2px; }
+.sc-pickbar .pb-txt strong { font-size: 14px; letter-spacing: 0.01em; }
+.sc-pickbar .pb-txt span { font-size: 12.5px; color: rgba(255,255,255,0.68); }
+.sc-pickbar .pb-act { display: flex; gap: 8px; }
+.sc-pickbar .btn-ghost { color: #fff; border-color: rgba(255,255,255,0.4); }
+.sc-pickbar .btn-ghost:hover { border-color: #fff; background: rgba(255,255,255,0.08); }
+.sc-cell.unpickable { opacity: 0.35; }
+.sc-pick-static { font-size: 11px; color: var(--ink-3, #8a8578); padding: 4px 0; }
+.sc-pick { display: flex; align-items: center; gap: 8px; width: 100%; text-align: left; font: inherit; font-size: 12px; cursor: pointer; padding: 7px 9px; border: 1px dashed var(--clay, #B16A48); background: rgba(177,106,72,0.05); color: var(--clay, #B16A48); transition: background .12s, border-color .12s; }
+.sc-pick:hover { background: rgba(177,106,72,0.13); }
+.sc-pick .bx { width: 15px; height: 15px; flex-shrink: 0; border: 1px solid var(--clay, #B16A48); display: grid; place-items: center; font-size: 10px; line-height: 1; background: #fff; }
+.sc-pick.on { border-style: solid; background: var(--clay, #B16A48); color: #fff; }
+.sc-pick.on .bx { background: #fff; color: var(--clay, #B16A48); border-color: #fff; }
+/* requested = picked by a hospital, not yet approved */
+.sc-ev.requested { border-style: dashed; }
+.sc-pill.requested { background: rgba(177,106,72,0.12); color: var(--clay, #B16A48); border-color: var(--clay, #B16A48); }
+.sc-approve-banner.req { border-left-color: var(--clay, #B16A48); }

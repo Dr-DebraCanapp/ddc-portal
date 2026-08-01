@@ -60,9 +60,10 @@ function DayCard({ day, role, onOpen }) {
 /* ============================================================
    A — MONTH GRID  ("The Ledger")
    ============================================================ */
-function MonthGrid({ days, year, month, role, onOpen, onPublish }) {
+function MonthGrid({ days, year, month, role, onOpen, onPublish, picking, picked, onPick }) {
   const Sx = window.SCHED;
   const weeks = monthMatrix(year, month);
+  const isPicked = (dt) => !!picked && picked.indexOf(Sx.iso(dt)) > -1;
   return (
     <div className="sc-cal">
       <div className="sc-weekrow">{WD_SHORT.map(w => <div key={w} className="wd">{w}</div>)}</div>
@@ -74,6 +75,32 @@ function MonthGrid({ days, year, month, role, onOpen, onPublish }) {
           const wknd = dt.getDay() === 0 || dt.getDay() === 6;
           const isPast = dt < Sx.TODAY && !isToday;
           const clinic = day && day.clinic ? Sx.clinic(day.clinic) : null;
+          // In pick mode the grid becomes a chooser: only the cells you're
+          // allowed to pick respond, everything else recedes.
+          const pickable = picking === 'open'
+            ? (!day && inMonth && !isPast)
+            : picking === 'request'
+              ? (!!day && day.status === 'available' && !isPast)
+              : false;
+          if (picking) {
+            const on = pickable && isPicked(dt);
+            return (
+              <div key={i} className={`sc-cell ${inMonth ? '' : 'other'} ${isToday ? 'today' : ''} ${pickable ? 'pickable' : 'unpickable'}`}>
+                <div className="dnum">
+                  <span className="n">{dt.getDate()}</span>
+                  {isToday && <span className="wknd" style={{ color: 'var(--clay)' }}>Today</span>}
+                </div>
+                {pickable
+                  ? <button className={`sc-pick ${on ? 'on' : ''}`} onClick={() => onPick(dt)}>
+                      <span className="bx">{on ? '✓' : ''}</span>
+                      <span className="tx">{on ? 'Picked' : (picking === 'open' ? 'Open this day' : 'Pick this day')}</span>
+                    </button>
+                  : day
+                    ? <div className="sc-pick-static">{day.status === 'available' ? 'Open day' : (clinic ? clinic.name.replace(/ (Hospital|Veterinary|Animal|Clinic|Center|Specialists).*$/, '') : 'Clinic day')}</div>
+                    : null}
+              </div>
+            );
+          }
           return (
             <div key={i} className={`sc-cell ${inMonth ? '' : 'other'} ${isToday ? 'today' : ''}`}>
               <div className="dnum">
