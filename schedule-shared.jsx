@@ -59,7 +59,6 @@ function PatientRow({ p, idx, role, day, onEdit, onRemove, onCancel, entities })
           {p.cancelled && <span className="sc-flag cancelled" title={`Cancelled by ${p.cancelled.by === 'admin' ? 'admin (our office)' : 'the clinic'}`}>Cancelled</span>}
           {!p.cancelled && sed.required && <span className="sc-flag sed" title={sed.reason}>Sedation</span>}
           {!p.cancelled && p.service === 'injection' && <span className="sc-flag inject">Injection</span>}
-          {!p.cancelled && p.rush && <span className="sc-flag rush">STAT</span>}
           {!p.cancelled && p.visitType === 'recheck' && <span className="sc-flag recheck">Recheck</span>}
           {!p.cancelled && p.caseId && <span className="sc-flag link" title={p.caseId}>Report</span>}
           <span style={{ color: 'var(--ink-4)', fontSize: 13, transform: open ? 'rotate(90deg)' : 'none', transition: 'transform 0.15s' }}>›</span>
@@ -412,13 +411,6 @@ function PatientEditorModal({ day, patient, role, onSave, onClose }) {
             </div>
           </div>
         )}
-
-        <label className="sc-rush">
-          <input type="checkbox" checked={!!f.rush} onChange={e => setF(prev => ({ ...prev, rush: e.target.checked, rushBy: e.target.checked ? (prev.rushBy || 'referring vet') : '' }))} />
-          <span><b>STAT read — $250</b><br />Requested by the referring vet or the owner. Billed as a separate line.
-            <span className="sc-rush-note">Guaranteed report within 24 hours of receiving a readable study. You must contact us directly to confirm we have acknowledged the STAT request — ticking this box alone does not start the clock.</span>
-          </span>
-        </label>
 
         <div className="form-row" style={{ marginTop: 14 }}>
           <label className="form-label">Sites for evaluation<span className="req">*</span> <span style={{ textTransform: 'none', letterSpacing: 0, color: 'var(--ink-4)', fontWeight: 400 }}>— each region is bilateral</span></label>
