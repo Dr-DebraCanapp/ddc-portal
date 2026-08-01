@@ -498,28 +498,86 @@ function AssignClinicModal({ day, role, mode, onAssign, onClose }) {
   const [sel, setSel] = useState('');
   const isClinic = role === 'clinic';
   const isPublish = mode === 'publish';
+
+  /* Publishing a run of days: an end date plus which weekdays count.
+     Defaults to just the day clicked, so the simple case stays one click. */
+  const [thru, setThru] = useState('');
+  const [wds, setWds] = useState(null); // null = follow the held hospital / all weekdays
+  const held = sel ? S().clinic(sel) : null;
+  const defaultWds = (held && (held.bookingDays || []).length) ? held.bookingDays : [1, 2, 3, 4, 5];
+  const activeWds = wds || defaultWds;
+
+  const dates = useMemo(() => {
+    const start = new Date(day.date);
+    if (!isPublish || !thru) return [start];
+    const end = new Date(thru + 'T12:00');
+    if (isNaN(end) || end < start) return [start];
+    const out = [];
+    const cur = new Date(start);
+    while (cur <= end && out.length < 60) {
+      if (activeWds.includes(cur.getDay())) out.push(new Date(cur));
+      cur.setDate(cur.getDate() + 1);
+    }
+    return out.length ? out : [start];
+  }, [day.date, thru, isPublish, activeWds.join(',')]);
+
+  const toggleWd = (i) => setWds(prev => {
+    const base = prev || defaultWds;
+    return base.includes(i) ? base.filter(x => x !== i) : [...base, i].sort();
+  });
+
   return (
     <div className="sc-modal-overlay" onClick={onClose}>
       <div className="sc-modal" onClick={e => e.stopPropagation()}>
-        <div className="sc-modal-eyebrow">{isPublish ? 'Open a clinic day' : isClinic ? 'Book a clinic day' : 'Assign clinic'} · {S().fmtLong(day.date)}</div>
-        <h2 className="sc-modal-h">{isPublish ? 'Publish this day' : isClinic ? 'Claim this open day' : 'Which clinic is this day for?'}</h2>
+        <div className="sc-modal-eyebrow">{isPublish ? 'Open clinic days' : isClinic ? 'Book a clinic day' : 'Assign clinic'} · {S().fmtLong(day.date)}</div>
+        <h2 className="sc-modal-h">{isPublish ? (dates.length > 1 ? `Publish ${dates.length} days` : 'Publish this day') : isClinic ? 'Claim this open day' : 'Which clinic is this day for?'}</h2>
         <p className="sc-modal-sub">
           {isPublish
-            ? 'Publish this as an open day. Leave the hospital blank to let any clinic book it, or hold it for one specific hospital so only they can claim it.'
+            ? 'Leave the hospital blank to let any clinic book these, or hold them for one hospital so only they can claim them.'
             : isClinic
             ? 'You are booking Dr. Canapp for an in-person MSK ultrasound day at your hospital. After booking, add the patients you want seen.'
             : 'Attach a hospital to this open day. They can then load their patient roster.'}
         </p>
         <div className="form-row">
           <label className="form-label">{isPublish ? 'Hold for a specific hospital (optional)' : 'Clinic / hospital'}</label>
-          <select className="form-select" value={sel} onChange={e => setSel(e.target.value)}>
+          <select className="form-select" value={sel} onChange={e => { setSel(e.target.value); setWds(null); }}>
             <option value="">{isPublish ? 'Open to any hospital' : 'Select a clinic…'}</option>
             {S().CLINICS.map(c => <option key={c.id} value={c.id}>{c.name} — {c.city}, {c.state}</option>)}
           </select>
         </div>
+
+        {isPublish && (
+          <React.Fragment>
+            <div className="form-row" style={{ marginTop: 12 }}>
+              <label className="form-label">Through <span style={{ textTransform: 'none', letterSpacing: 0, color: 'var(--ink-4)', fontWeight: 400 }}>— optional, to open a block of days</span></label>
+              <input className="form-input" type="date" value={thru} min={S().iso(new Date(day.date))} onChange={e => setThru(e.target.value)} />
+              <div className="form-help">Leave blank to publish just {S().fmtLong(day.date)}.</div>
+            </div>
+            {thru && (
+              <div className="form-row">
+                <label className="form-label">On these weekdays</label>
+                <div className="sc-chiprow">
+                  {S().WEEKDAYS.map((w, i) => (
+                    <button key={w} className={`sc-chip ${activeWds.includes(i) ? 'on' : ''}`} onClick={() => toggleWd(i)}>{w}</button>
+                  ))}
+                </div>
+                {held && <div className="form-help">{held.name} books {(held.bookingDays || []).map(i => S().WEEKDAYS[i]).join(' · ') || 'any weekday'}.</div>}
+              </div>
+            )}
+            {dates.length > 1 && (
+              <div className="sc-fee-preview" style={{ marginTop: 10 }}>
+                <div className="line"><span>{dates.length} days will open</span><b>{S().fmtLong(dates[0])} – {S().fmtLong(dates[dates.length - 1])}</b></div>
+                <div className="line" style={{ color: 'var(--ink-4)', fontSize: 11.5 }}><span>{dates.slice(0, 8).map(d => S().fmtLong(d).replace(/^\w+, /, '')).join(' · ')}{dates.length > 8 ? ' · +' + (dates.length - 8) + ' more' : ''}</span></div>
+              </div>
+            )}
+          </React.Fragment>
+        )}
+
         <div className="sc-modal-actions">
           <button className="btn btn-ghost" onClick={onClose}>Cancel</button>
-          <button className="btn btn-clay" disabled={!isPublish && !sel} onClick={() => onAssign(day, sel)}>{isPublish ? 'Publish day' : isClinic ? 'Book this day' : 'Assign clinic'}</button>
+          <button className="btn btn-clay" disabled={!isPublish && !sel} onClick={() => onAssign(day, sel, isPublish ? dates : null)}>
+            {isPublish ? (dates.length > 1 ? `Publish ${dates.length} days` : 'Publish day') : isClinic ? 'Book this day' : 'Assign clinic'}
+          </button>
         </div>
       </div>
     </div>

@@ -115,7 +115,7 @@ function SchedSignIn({ onSignedIn }) {
           <img src="assets/logo-mark.png" alt="" style={{ width: 56, height: 56, objectFit: 'contain' }} onError={e => { e.target.style.display = 'none'; }} />
           <div className="rv-eyebrow" style={{ marginTop: 10 }}>In-Person Scheduling</div>
           <h2 className="rv-h">Sign in.</h2>
-          <p className="rv-sub">Hospital accounts and Dr. Canapp's team. Referring vets: this is separate from the <a href="portal.html">remote-read portal</a>.</p>
+          <p className="rv-sub">Sign in with the details our office sent you.</p>
         </div>
         <form onSubmit={go} style={{ background: 'var(--paper-deep, rgba(0,0,0,0.03))', padding: '26px 26px 22px', border: '1px solid var(--line, #e6e1d6)' }}>
           <div className="form-row"><label className="form-label">Email</label>
@@ -345,12 +345,19 @@ function ScheduleApp({ profile, boot }) {
     if (days.find(d => d.id === id)) { flash('That day is already on the calendar.'); return; }
     setModal({ type: 'publish', day: { id, date: new Date(dt) } });
   };
-  const publishDay = (day, reservedFor) => {
-    const nd = { id: day.id, date: new Date(day.date), clinic: null, status: 'available', reservedFor: reservedFor || null, patients: [], invoice: null };
-    setDays(prev => [...prev, nd]);
-    Cloud.saveDay(nd).catch(oops);
+  /* Publish one day, or a whole block. Dates already on the calendar are skipped. */
+  const publishDay = (day, reservedFor, dates) => {
+    const list = (dates && dates.length ? dates : [day.date]).map(d => new Date(d));
+    const fresh = list
+      .map(d => ({ id: 'cd-' + Sx.iso(d), date: d }))
+      .filter(x => !days.some(existing => existing.id === x.id));
+    if (!fresh.length) { setModal(null); flash('Those days are already on the calendar.'); return; }
+    const rows = fresh.map(x => ({ id: x.id, date: x.date, clinic: null, status: 'available', reservedFor: reservedFor || null, patients: [], invoice: null }));
+    setDays(prev => [...prev, ...rows]);
+    rows.forEach(r => Cloud.saveDay(r).catch(oops));
     setModal(null);
-    flash(reservedFor ? `Open day published — held for ${Sx.clinic(reservedFor).name}.` : 'Open day published — any clinic can book it.');
+    const who = reservedFor ? ' held for ' + (Sx.clinic(reservedFor) || {}).name : '';
+    flash(rows.length === 1 ? 'Day published' + who + '.' : rows.length + ' days published' + who + '.');
   };
 
   const savePatient = async (day, data) => {
@@ -405,7 +412,8 @@ function ScheduleApp({ profile, boot }) {
         <div className="sc-subbar-inner">
           <div className="sc-seg">
             <button className={tab === 'calendar' ? 'active' : ''} onClick={() => setTab('calendar')}>Calendar</button>
-            <button className={tab === 'clinics' ? 'active' : ''} onClick={() => setTab('clinics')}>Clinics</button>
+            {!isHospital && <button className={tab === 'clinics' ? 'active' : ''} onClick={() => setTab('clinics')}>Clinics</button>}
+            {isHospital && <button className={tab === 'account' ? 'active' : ''} onClick={() => setTab('account')}>Account</button>}
             {role === 'admin' && <button className={tab === 'billing' ? 'active' : ''} onClick={() => setTab('billing')}>Billing</button>}
             {role === 'admin' && <button className={tab === 'imaging' ? 'active' : ''} onClick={() => setTab('imaging')}>Imaging {imagingUnrouted > 0 && <span className="sc-tab-badge">{imagingUnrouted}</span>}</button>}
           </div>
@@ -436,7 +444,7 @@ function ScheduleApp({ profile, boot }) {
             <span className="ic"><SchedDragonfly size={40} /></span>
             <div>
               <div className="who">{myClinic.name}</div>
-              <div className="sub">Hospital account · {myClinic.city}, {myClinic.state} — separate login from the remote-read referral portal.</div>
+              <div className="sub">{myClinic.city}, {myClinic.state} · books {(myClinic.bookingDays || []).length ? (myClinic.bookingDays || []).map(i => Sx.WEEKDAYS[i]).join(' · ') : 'any weekday'} · up to {myClinic.maxCasesPerDay} patients a day</div>
             </div>
           </div>
         )}
@@ -484,6 +492,7 @@ function ScheduleApp({ profile, boot }) {
                   <button className="sc-today-btn" onClick={() => { setCur([Sx.TODAY.getFullYear(), Sx.TODAY.getMonth()]); setAnchor(new Date(Sx.TODAY)); }}>Today</button>
                 </div>
                 <div className="sc-caltools-right">
+                  {isHospital && <button className="btn btn-clay btn-sm" onClick={() => setModal({ type: 'reqdays' })}>Request clinic days</button>}
                   <div className="sc-legend">
                     <span className="lg"><span className="sw avail" />Open</span>
                     <span className="lg"><span className="sw booked" />Booked</span>
@@ -498,12 +507,19 @@ function ScheduleApp({ profile, boot }) {
                 </div>
               </div>
 
+            {isHospital && days.length === 0 && (
+              <div className="sc-empty" style={{ marginBottom: 18 }}>
+                <div className="eh">No clinic days open yet</div>
+                <p>When we open a day for you it appears on the calendar below — book it, then add the patients you'd like Dr. Canapp to see. Use <strong>Request clinic days</strong> above to tell us when suits.</p>
+              </div>
+            )}
             {ledgerView === 'month' && <MonthGrid days={visible} year={y} month={m} role={role} onOpen={openDay} onPublish={onPublish} />}
             {ledgerView === 'week' && <WeekStrip days={visible} anchor={anchor} role={role} onOpen={openDay} onPublish={onPublish} />}
           </React.Fragment>
         )}
 
-        {tab === 'clinics' && <ClinicsView days={days} role={role} clinicId={clinicId} rev={clinicRev} onEdit={on.editClinic} flash={flash} entities={entities} accounts={accounts} on={on} />}
+        {tab === 'account' && isHospital && <window.HospitalAccountView profile={profile} clinic={myClinic} flash={flash} oops={oops} />}
+        {tab === 'clinics' && !isHospital && <ClinicsView days={days} role={role} clinicId={clinicId} rev={clinicRev} onEdit={on.editClinic} flash={flash} entities={entities} accounts={accounts} on={on} />}
         {tab === 'billing' && role === 'admin' && <window.BillingView entities={entities} accounts={accounts} on={on} onOpenEntity={(e) => e.kind === 'inperson' && openDay(e.source || e)} onEditRates={() => setModal({ type: 'rates' })} />}
         {tab === 'imaging' && role === 'admin' && <ImagingView incoming={incoming} setIncoming={setIncoming} days={days} flash={flash} oops={oops} />}
       </main>
@@ -512,9 +528,10 @@ function ScheduleApp({ profile, boot }) {
       {selected && <window.DayDrawer day={selected} entity={entities.find(e => e.id === selected.id)} entities={entities} role={role} onClose={() => setSelId(null)} on={on} />}
 
       {/* modals */}
-      {modal && modal.type === 'publish' && <window.AssignClinicModal day={modal.day} role={role} mode="publish" onAssign={(day, cid) => publishDay(day, cid)} onClose={() => setModal(null)} />}
+      {modal && modal.type === 'publish' && <window.AssignClinicModal day={modal.day} role={role} mode="publish" onAssign={(day, cid, dates) => publishDay(day, cid, dates)} onClose={() => setModal(null)} />}
       {modal && modal.type === 'assign' && <window.AssignClinicModal day={modal.day} role={role} onAssign={(day, cid) => { saveDay(updateDay(day.id, d => ({ ...d, clinic: cid, status: 'booked', reservedFor: null }))); setModal(null); flash('Clinic assigned — roster can now be built.'); }} onClose={() => setModal(null)} />}
       {modal && modal.type === 'patient' && <window.PatientEditorModal day={modal.day} patient={modal.patient} role={role} onSave={savePatient} onClose={() => setModal(null)} />}
+      {modal && modal.type === 'reqdays' && window.RequestDaysModal && <window.RequestDaysModal clinic={myClinic} profile={profile} onClose={() => setModal(null)} flash={flash} />}
       {modal && modal.type === 'rates' && window.RateCardEditor && <window.RateCardEditor onClose={() => setModal(null)} onSaved={() => { setClinicRev(v => v + 1); flash('Prices updated. Invoices already issued keep the price they were billed at.'); }} />}
       {modal && modal.type === 'payment' && (() => { const en = entities.find(x => x.id === modal.entityId); return en ? <window.PaymentModal entity={en} onSave={(e2, p) => { on.addPayment(e2, p); setModal(null); }} onClose={() => setModal(null)} /> : null; })()}
       {modal && modal.type === 'signoff' && <window.SignoffModal day={modal.day} role={role} onSave={on.saveSignoff} onRemove={on.removeSignoff} onClose={() => setModal(null)} />}
@@ -540,7 +557,7 @@ function ClinicsView({ days, role, clinicId, rev, onEdit, flash, entities, accou
         <div className="sc-monthnav"><div className="mo" style={{ minWidth: 0 }}>Hospitals</div></div>
         {role === 'admin' && <div className="sc-caltools-right"><button className="btn btn-clay btn-sm" onClick={() => setInvite(true)}>+ Invite a hospital</button></div>}
       </div>
-      <p className="rv-sub" style={{ marginBottom: 24 }}>Hospitals Dr. Canapp travels to — <strong>separate from the remote-read referral portal</strong>. {role === 'admin' && 'Click any hospital to set its color, bookable weekdays, and case cap.'}</p>
+      <p className="rv-sub" style={{ marginBottom: 24 }}>Hospitals Dr. Canapp travels to. {role === 'admin' && 'Click any hospital to set its color, bookable weekdays, and case cap.'}</p>
       {list.length === 0 && <div className="sc-empty"><div className="eh">No hospitals yet</div><p>Approve a visit request or invite a hospital to get started.</p></div>}
       <div className="sc-clinics">
         {list.map(c => {
