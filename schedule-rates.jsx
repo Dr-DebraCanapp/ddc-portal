@@ -87,16 +87,41 @@ function srApply(card) {
   return c;
 }
 
+/* An account can have prices of its own — one hospital at $1,200, another at
+   $900. They sit ON TOP of the card in force, so a rate rise still moves any
+   line that hasn't been overridden. */
+function srApplyOverrides(account) {
+  const B = window.SchedBill;
+  const ov = account && account.rates;
+  if (!ov) return null;
+  const prev = {};
+  Object.keys(ov).forEach(k => {
+    const v = Number(ov[k]);
+    if (B.RATES[k] && ov[k] !== '' && ov[k] != null && !isNaN(v)) {
+      prev[k] = B.RATES[k].amount;
+      B.RATES[k].amount = v;
+    }
+  });
+  return Object.keys(prev).length ? prev : null;
+}
+function srRestore(prev) {
+  if (!prev) return;
+  const B = window.SchedBill;
+  Object.keys(prev).forEach(k => { if (B.RATES[k]) B.RATES[k].amount = prev[k]; });
+}
+
 /* Price an entity with the card that was in force on its own date, so a
    historical invoice never silently re-prices when rates go up. Restores
    the current card afterwards. */
 function srWithCardFor(entityOrDate, fn) {
   const B = window.SchedBill;
-  const date = entityOrDate && entityOrDate.kind ? B.entityDate(entityOrDate) : entityOrDate;
+  const isEntity = !!(entityOrDate && entityOrDate.kind);
+  const date = isEntity ? B.entityDate(entityOrDate) : entityOrDate;
   const prev = B.ACTIVE_CARD || srCurrent();
   const want = srCardFor(date);
   if (want.id !== prev.id) srApply(want);
-  try { return fn(); } finally { if (want.id !== prev.id) srApply(prev); }
+  const restore = isEntity ? srApplyOverrides(entityOrDate.account) : null;
+  try { return fn(); } finally { srRestore(restore); if (want.id !== prev.id) srApply(prev); }
 }
 
 /* ---- persistence ---- */
@@ -123,5 +148,6 @@ window.SchedRates = {
   ROWS: SR_ROWS, SETTINGS: SR_SETTINGS,
   defaults: srDefaults, cards: srCards, setCards: srSetCards,
   cardFor: srCardFor, current: srCurrent, apply: srApply, withCardFor: srWithCardFor,
+  applyOverrides: srApplyOverrides, restore: srRestore,
   load: srLoad, save: srSave, remove: srRemove,
 };

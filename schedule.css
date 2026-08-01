@@ -953,3 +953,21 @@
   .bd-head { display: none; }
   .bd-row { grid-template-columns: 1fr 1fr; }
 }
+
+
+/* ---- per-hospital billing + prices (clinic profile) ---- */
+.sc-billing-block { margin-top: 20px; border: 1px solid var(--rule-2); padding: 0; }
+.sc-billing-block > summary { padding: 12px 14px; background: var(--cream); cursor: pointer; font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-3); font-weight: 600; }
+.sc-billing-block[open] > summary { border-bottom: 1px solid var(--rule-2); }
+.sc-billing-block > *:not(summary) { margin-left: 16px; margin-right: 16px; }
+.sc-billing-block > .sc-pat-grid { margin-top: 14px; }
+.sc-billing-block > .sc-rate-ov { margin-bottom: 16px; }
+.sc-rate-ov { border: 1px solid var(--rule-2); }
+.ov-row { display: grid; grid-template-columns: 1fr 150px; gap: 12px; align-items: center; padding: 8px 12px; border-bottom: 1px solid var(--rule-2); }
+.ov-row:last-child { border-bottom: none; }
+.ov-row.on { background: rgba(177,106,72,0.06); }
+.ov-row .lb { font-size: 13px; display: flex; flex-direction: column; gap: 2px; }
+.ov-row .lb .std { font-size: 10.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-4); }
+.ov-row .in { display: flex; align-items: center; gap: 6px; }
+.ov-row .in .cur { color: var(--ink-3); font-size: 13px; }
+.ov-row .in .form-input { margin: 0; text-align: right; font-size: 13px; padding: 7px 9px; }

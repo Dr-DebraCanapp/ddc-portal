@@ -215,15 +215,24 @@ function schedMoney(n) {
   const v = Math.round(Number(n) || 0);
   return '$' + v.toLocaleString('en-US');
 }
-function schedRate(p) {
+/* Price with a hospital's own rates when it has them, so previews and
+   calendar totals agree with the invoice. */
+function schedWithClinicRates(clinicId, fn) {
+  const R = window.SchedRates, A = window.SchedAccounts;
+  const c = clinicId && window.SCHED && window.SCHED.clinic ? window.SCHED.clinic(clinicId) : null;
+  if (!R || !A || !c) return fn();
+  const restore = R.applyOverrides(A.fromClinic(c));
+  try { return fn(); } finally { R.restore(restore); }
+}
+function schedRate(p, clinicId) {
   const B = window.SchedBill;
-  if (B) return B.patientTotal(p);
+  if (B) return schedWithClinicRates(clinicId, () => B.patientTotal(p));
   return (SCHED_RATES[p.service] || SCHED_RATES.initial).amount;
 }
 /* Invoice total = services + manual charges/credits. */
 function schedDayTotal(day) {
   const B = window.SchedBill;
-  if (B) return B.total(day);
+  if (B) return schedWithClinicRates(day && day.clinic, () => B.total(day));
   return (day.patients || []).reduce((s, p) => s + (p.cancelled ? 0 : schedRate(p)), 0);
 }
 function schedActive(day) {
@@ -271,6 +280,7 @@ window.SCHED = {
   MONTHS: SCHED_MONTHS, WD: SCHED_WD,
   INCOMING: SCHED_INCOMING,
   money: schedMoney, rate: schedRate, dayTotal: schedDayTotal, active: schedActive,
+  withClinicRates: schedWithClinicRates,
   RECHECK_WINDOW_MONTHS: SCHED_RECHECK_WINDOW_MONTHS,
   sameDay: schedSameDay, sedation: schedSedation, fmtLong: schedFmtLong, iso,
   fmtSex: schedFmtSex, liveFlags: schedLiveFlags, occupations: SCHED_OCCUPATIONS,

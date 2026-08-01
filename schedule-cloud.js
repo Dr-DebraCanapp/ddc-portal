@@ -37,11 +37,12 @@
       canSedate: r.can_sedate, intakeNote: r.intake_note || '',
       billingKind: r.billing_kind || 'inperson', billTo: r.bill_to || '', billingAttn: r.billing_attn || '',
       billingEmail: r.billing_email || '', billingAddress: r.billing_address || '', termsDays: r.terms_days || null,
+      rateOverrides: r.rate_overrides || null,
       miles: r.miles, mapX: r.map_x, mapY: r.map_y,
     };
   }
   function clinicToRow(c) {
-    return {
+    const row = {
       id: c.id, name: c.name, city: c.city || null, state: c.state || null, region: c.region || 'md',
       address: c.address || null, contact: c.contact || null, contact_role: c.contactRole || null,
       email: c.email || null, phone: c.phone || null, login_email: c.loginEmail || null,
@@ -53,6 +54,11 @@
       terms_days: c.termsDays == null || c.termsDays === '' ? null : Number(c.termsDays),
       map_x: c.mapX == null ? null : c.mapX, map_y: c.mapY == null ? null : c.mapY,
     };
+    // only sent when actually used, so the column being absent (migration not
+    // run yet) can't break saving an ordinary hospital profile
+    if (c.rateOverrides && Object.keys(c.rateOverrides).length) row.rate_overrides = c.rateOverrides;
+    else if (c.rateOverrides === null) row.rate_overrides = null;
+    return row;
   }
 
   function patientFromRow(r) {

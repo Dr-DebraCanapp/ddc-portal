@@ -168,7 +168,7 @@ function BillingView({ entities, accounts, on, onOpenEntity, onEditRates, onAddP
           ))}
         </div>
         <div className="n">
-          No tax. In-person work is one hospital per day, batched onto a single invoice. Remote reads are batched into a monthly statement per practice. Invoice numbers run in one sequence per account (DDC-BOW-2607-01). Terms Net {BV().TERMS_DAYS} unless an account is set otherwise.
+          No tax. In-person work is one hospital per day, batched onto a single invoice. Remote reads are batched into a monthly statement per practice. Invoice numbers run in one sequence per account (DDC-BOW-2607-01). Terms Net {BV().TERMS_DAYS} unless an account is set otherwise. A hospital can be given prices of its own — Clinics → edit the hospital → Billing.
           {window.SchedRates && window.SchedRates.current().effectiveFrom && <React.Fragment><br /><br />These prices are in force from {new Date(window.SchedRates.current().effectiveFrom + 'T12:00').toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })}{window.SchedRates.current().note ? ' — ' + window.SchedRates.current().note : ''}. Work invoiced before then keeps its original price.</React.Fragment>}
           <br /><br /><b>STAT reads:</b> {BV().STAT_DISCLAIMER}
         </div>

@@ -866,7 +866,19 @@ function ClinicProfileModal({ clinic, onSave, onClose }) {
     color: clinic.color || S.PALETTE[0],
     bookingDays: [...(clinic.bookingDays || [])],
     maxCasesPerDay: clinic.maxCasesPerDay || 4,
+    billTo: clinic.billTo || '', billingAttn: clinic.billingAttn || '',
+    billingEmail: clinic.billingEmail || '', billingAddress: clinic.billingAddress || '',
+    termsDays: clinic.termsDays == null ? '' : String(clinic.termsDays),
+    rateOverrides: { ...(clinic.rateOverrides || {}) },
   }));
+  const R = window.SchedRates;
+  const B = window.SchedBill;
+  const setRate = (id, v) => setF(prev => {
+    const next = { ...prev.rateOverrides };
+    if (v === '' || v == null) delete next[id]; else next[id] = Number(v);
+    return { ...prev, rateOverrides: next };
+  });
+  const overrideCount = Object.keys(f.rateOverrides).length;
   const set = (k, v) => setF(prev => ({ ...prev, [k]: v }));
   const toggleDay = (i) => setF(prev => ({ ...prev, bookingDays: prev.bookingDays.includes(i) ? prev.bookingDays.filter(x => x !== i) : [...prev.bookingDays, i].sort() }));
   const valid = f.name.trim() && f.color && f.bookingDays.length > 0 && f.maxCasesPerDay >= 1;
@@ -921,9 +933,48 @@ function ClinicProfileModal({ clinic, onSave, onClose }) {
           </div>
         </div>
 
+        <details className="sc-billing-block" open={overrideCount > 0}>
+          <summary>Billing — who is invoiced, terms, and this hospital's own prices{overrideCount > 0 ? ` · ${overrideCount} price${overrideCount === 1 ? '' : 's'} set` : ''}</summary>
+          <div className="sc-pat-grid" style={{ gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+            <div className="form-row"><label className="form-label">Invoice addressed to</label><input className="form-input" value={f.billTo} onChange={e => set('billTo', e.target.value)} placeholder={f.name || 'The hospital'} /></div>
+            <div className="form-row"><label className="form-label">Attention</label><input className="form-input" value={f.billingAttn} onChange={e => set('billingAttn', e.target.value)} placeholder={f.contact || 'Accounts payable'} /></div>
+            <div className="form-row"><label className="form-label">Billing email</label><input className="form-input" type="email" value={f.billingEmail} onChange={e => set('billingEmail', e.target.value)} placeholder={f.email || 'billing@hospital.com'} /></div>
+            <div className="form-row"><label className="form-label">Payment terms</label><input className="form-input" type="number" min="0" max="90" value={f.termsDays} onChange={e => set('termsDays', e.target.value)} placeholder="15" /><div className="form-help">Days. Blank uses the standard Net 15.</div></div>
+          </div>
+          <div className="form-row"><label className="form-label">Billing address</label><input className="form-input" value={f.billingAddress} onChange={e => set('billingAddress', e.target.value)} placeholder={[f.city, f.state].filter(Boolean).join(', ')} /></div>
+
+          <div className="sc-sec-label" style={{ marginTop: 18 }}>Prices for this hospital</div>
+          <p className="form-help" style={{ margin: '0 0 10px' }}>
+            Leave a row blank to use the standard rate card. Anything you set here applies only to this
+            hospital, on work dated from now on and on anything not yet invoiced.
+          </p>
+          <div className="sc-rate-ov">
+            {(R ? R.ROWS : []).map(r => {
+              const std = (B.RATES[r.id] || {}).amount || 0;
+              const val = f.rateOverrides[r.id];
+              return (
+                <div key={r.id} className={`ov-row ${val != null ? 'on' : ''}`}>
+                  <div className="lb">{r.label}<span className="std">standard {S.money(std)}</span></div>
+                  <div className="in">
+                    <span className="cur">$</span>
+                    <input className="form-input" type="number" min="0" step="25" value={val == null ? '' : val}
+                      onChange={e => setRate(r.id, e.target.value)} placeholder={String(std)} />
+                    {val != null && <button type="button" className="sb-x" title="Use the standard rate" onClick={() => setRate(r.id, '')}>×</button>}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </details>
+
         <div className="sc-modal-actions">
           <button className="btn btn-ghost" onClick={onClose}>Cancel</button>
-          <button className="btn btn-clay" disabled={!valid} onClick={() => onSave(clinic, { ...f, status: 'active', account: 'active' })}>{isNew ? 'Activate hospital' : 'Save profile'}</button>
+          <button className="btn btn-clay" disabled={!valid} onClick={() => {
+            const patch = { ...f, termsDays: f.termsDays === '' ? null : Number(f.termsDays), status: 'active', account: 'active' };
+            // only touch the overrides column when it is actually in play
+            if (!overrideCount) { if (clinic.rateOverrides) patch.rateOverrides = null; else delete patch.rateOverrides; }
+            onSave(clinic, patch);
+          }}>{isNew ? 'Activate hospital' : 'Save profile'}</button>
         </div>
       </div>
     </div>

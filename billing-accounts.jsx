@@ -32,6 +32,8 @@ function baFromClinic(c) {
     email: c.billingEmail || c.email || '',
     address: c.billingAddress || [c.city, c.state].filter(Boolean).join(', '),
     termsDays: Number(c.termsDays) > 0 ? Number(c.termsDays) : 15,
+    // prices agreed with this hospital specifically; blank rows fall back to the card
+    rates: (c.rateOverrides && Object.keys(c.rateOverrides).length) ? c.rateOverrides : null,
     color: c.color || '#8B9482',
     source: 'clinic',
   };
