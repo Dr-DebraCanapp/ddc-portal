@@ -57,7 +57,7 @@ function inviteBody(f, url) {
     'Your application link — your details are already filled in:',
     url,
     '',
-    'It takes a couple of minutes: it confirms your licence and practice, and once Dr. Canapp approves it we email your sign-in details. From then on you upload DICOM ultrasound clips, radiographs, MRI or CT, plus the patient history, and track each case through to the delivered report.',
+    'It takes a couple of minutes: it confirms your licence and practice, and once Dr. Canapp approves it we email your sign-in details. From then on you upload DICOM ultrasound clips, radiographs, reports, plus the patient history, and track each case through to the delivered report.',
     '',
     'Reads are billed per bilateral site and a written report is typically returned in 5-7 business days, or within 24 hours on a STAT request.',
     '',

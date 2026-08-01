@@ -371,12 +371,21 @@
 
     /* ---- admin: create a hospital login (secondary client, keeps admin session) ---- */
     async createHospitalAccount({ email, password, name, clinicId }) {
+      return SchedCloud.createUserAccount({ email, password, name, role: 'hospital', extra: { sched_clinic_id: clinicId } });
+    },
+    /* ---- admin: create a referring-vet login for an approved application ---- */
+    async createVetAccount({ email, password, name, clinic }) {
+      return SchedCloud.createUserAccount({ email, password, name, role: 'vet', extra: { clinic } });
+    },
+    /* Signing someone up from the console would normally swap OUR session for
+       theirs — a second client with persistSession off avoids that. */
+    async createUserAccount({ email, password, name, role, extra }) {
       const alt = window.supabase.createClient(cfg.url, cfg.anonKey, {
         auth: { persistSession: false, autoRefreshToken: false },
       });
       const { data, error } = await alt.auth.signUp({
         email, password,
-        options: { data: { name, role: 'hospital', sched_clinic_id: clinicId } },
+        options: { data: { name, role, ...(extra || {}) } },
       });
       if (error) throw new Error(error.message);
       return data.user;

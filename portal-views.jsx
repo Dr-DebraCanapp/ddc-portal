@@ -289,7 +289,7 @@ function ApplyView({ onBack, invite }) {
 /* ============================================================
    APP CHROME
    ============================================================ */
-function AppBar({ session, crumb, logout, onHome }) {
+function AppBar({ session, crumb, logout, onHome, onFees }) {
   return (
     <header className="app-bar">
       <div className="app-bar-inner">
@@ -301,6 +301,7 @@ function AppBar({ session, crumb, logout, onHome }) {
           </span>
         </a>
         {crumb && <div className="crumb">{crumb}</div>}
+        {onFees && <button type="button" className="app-bar-link" onClick={onFees}>Fee schedule</button>}
         <div className="who">
           <div>
             <div className="name">{session.name}</div>

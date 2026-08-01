@@ -154,6 +154,10 @@
   .grid div p { margin: 0; font-size: 13px; }
   h2 { font-family: 'Cormorant Garamond', serif; font-size: 20px; margin: 28px 0 8px; letter-spacing: -0.01em; }
   section p { margin: 0 0 12px; }
+  section h2:first-child { margin-top: 0; }
+  section ul, section ol { margin: 0 0 12px; padding-left: 20px; }
+  section li { margin-bottom: 5px; }
+  section p strong { font-weight: 600; }
   .draft-stamp { position: fixed; top: 40%; left: 0; right: 0; text-align: center; font-family: 'Cormorant Garamond', serif; font-size: 120px; color: rgba(177,106,72,0.10); transform: rotate(-18deg); pointer-events: none; letter-spacing: 0.2em; font-style: italic; }
   footer { margin-top: 40px; padding-top: 18px; border-top: 1px solid #ddd; font-size: 10.5px; color: #888; line-height: 1.6; }
   .sigblock { margin-top: 36px; padding-top: 24px; border-top: 1px solid #1f1f1f; }
@@ -178,9 +182,13 @@ ${r.draft ? '<div class="draft-stamp">DRAFT</div>' : ''}
   <div><h4>Presenting complaint</h4><p>${esc(c.complaint || '—')}</p></div>
   <div><h4>Sites evaluated</h4><p>${sites ? esc(sites) : '—'}</p></div>
 </div>
-<section><h2>Findings</h2>${para(r.findings) || '<p><em>—</em></p>'}</section>
+${(function () {
+  const body = window.reportBody ? window.reportBody(r) : '';
+  if (body && window.formatReportBody) return `<section>${window.formatReportBody(body) || '<p><em>—</em></p>'}</section>`;
+  return `<section><h2>Findings</h2>${para(r.findings) || '<p><em>—</em></p>'}</section>
 <section><h2>Impression / Diagnosis</h2>${para(r.impression) || '<p><em>—</em></p>'}</section>
-<section><h2>Recommendations</h2>${para(r.recommendations) || '<p><em>—</em></p>'}</section>
+<section><h2>Recommendations</h2>${para(r.recommendations) || '<p><em>—</em></p>'}</section>`;
+})()}
 <div class="sigblock">
   <div class="name">Debra A. Canapp, DVM, DACVSMR, CCRT, CVA</div>
   <div class="role">Diplomate, American College of Veterinary Sports Medicine &amp; Rehabilitation</div>

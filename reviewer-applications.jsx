@@ -36,19 +36,20 @@ function ApplicationsView({ onBack }) {
 
   const startApprove = (app) => setApproveModal(app);
   const confirmApprove = async (app, password) => {
-    const account = window.PortalDB.addAccount({
-      email: app.email,
-      password,
-      name: app.name,
-      clinic: app.clinic,
-    });
+    // In cloud mode create the real sign-in here — same route the in-person
+    // side uses, so nobody has to open the Supabase dashboard.
+    const Cloud = window.SchedCloud;
+    if (Cloud && Cloud.configured && Cloud.createVetAccount) {
+      await Cloud.createVetAccount({ email: app.email, password, name: app.name, clinic: app.clinic });
+    } else {
+      window.PortalDB.addAccount({ email: app.email, password, name: app.name, clinic: app.clinic });
+    }
     await window.PortalDB.updateApplication(app.id, {
       status: 'approved',
       approvedAt: new Date().toISOString(),
       generatedPassword: password,
     });
     reload();
-    return account;
   };
 
   return (
@@ -87,7 +88,7 @@ function ApplicationsView({ onBack }) {
       ) : (
         <div className="rv-app-list">
           {filtered.map(app => (
-            <AppRow key={app.id} app={app} onApprove={() => startApprove(app)} onDecline={() => decline(app)} />
+            <AppRow key={app.id} app={app} onApprove={() => startApprove(app)} onDecline={() => decline(app)} onSetup={() => startApprove(app)} />
           ))}
         </div>
       )}
@@ -122,7 +123,7 @@ function ApplicationsView({ onBack }) {
   );
 }
 
-function AppRow({ app, onApprove, onDecline }) {
+function AppRow({ app, onApprove, onDecline, onSetup }) {
   return (
     <article className={`rv-app-card status-${app.status}`}>
       <div className="rv-app-main">
@@ -159,11 +160,8 @@ function AppRow({ app, onApprove, onDecline }) {
 
         {app.status === 'approved' && app.generatedPassword && (
           <div className="rv-app-approved">
-            <strong>Access granted.</strong>{' '}
-            {window.PORTAL_BACKEND === 'supabase'
-              ? <>Application is approved. To grant portal access, create this user in <em>Supabase Dashboard → Authentication → Users → Add user</em> with the credentials below — the trigger will auto-create the profile row with role <code>vet</code>.</>
-              : <>Login credentials were generated for {app.email}. Share them with the vet via secure channel.</>
-            }
+            <strong>Account created.</strong> {app.name} can sign in at the portal with the credentials
+            below. Send them on by secure channel if you haven't already.
             <div className="rv-app-creds">
               <code>{app.email}</code>
               <code>{app.generatedPassword}</code>
@@ -176,6 +174,11 @@ function AppRow({ app, onApprove, onDecline }) {
         <div className="rv-app-actions">
           <button className="btn btn-ghost btn-sm" onClick={onDecline}>Decline</button>
           <button className="btn btn-clay btn-sm" onClick={onApprove}>Approve & create account <span className="arrow">→</span></button>
+        </div>
+      )}
+      {app.status === 'approved' && onSetup && (
+        <div className="rv-app-actions">
+          <button className="btn btn-ghost btn-sm" onClick={onSetup}>Create sign-in / resend welcome</button>
         </div>
       )}
     </article>
@@ -197,32 +200,76 @@ function Meta({ label, children }) {
 function ApproveModal({ app, onClose, onConfirm }) {
   const [password, setPassword] = raUseState(() => generatePassword());
   const [done, setDone] = raUseState(false);
+  const [busy, setBusy] = raUseState(false);
+  const [err, setErr] = raUseState('');
+  const [emailed, setEmailed] = raUseState(false);
 
-  const confirm = () => {
-    onConfirm(app, password);
-    setDone(true);
+  const portalUrl = (((window.PORTAL_CONFIG || {}).payments || {}).portalUrl || 'https://portal.drdebracanapp.com').replace(/\/$/, '');
+  const welcome = [
+    `Dear ${app.name || 'Doctor'},`,
+    '',
+    'Your access to the Dr. Debra Canapp referral portal has been approved. You can sign in now:',
+    '',
+    `Web address:        ${portalUrl}`,
+    `Email:              ${app.email}`,
+    `Temporary password: ${password}`,
+    '',
+    'Please change the password after your first sign-in.',
+    '',
+    'WHAT TO DO NEXT',
+    'Sign in and choose New referral. Upload the DICOM ultrasound clips, any radiographs or reports, and the patient history. You can follow each case from submission through to the delivered report, and your practice statements and payment history live in the portal too.',
+    '',
+    'A written report is typically returned in 5-7 business days, or within 24 hours on a STAT request. The current fee schedule is in the portal under Fee schedule.',
+    '',
+    'Any questions, just reply to this message.',
+    '',
+    'With thanks,',
+    'Ally Canapp - Li',
+    '',
+    'info@DrDebraCanapp.com',
+  ].join('\n');
+
+  const emailWelcome = () => {
+    const subject = 'Your Dr. Debra Canapp referral portal sign-in';
+    window.location.href = `mailto:${encodeURIComponent(app.email)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(welcome)}`;
+    setEmailed(true);
+  };
+
+  const confirm = async () => {
+    setBusy(true); setErr('');
+    try {
+      await onConfirm(app, password);
+      setDone(true);
+    } catch (e) {
+      const m = String((e && e.message) || e);
+      setErr(/registered|already/i.test(m)
+        ? 'That email already has an account. They can sign in with their existing password, or reset it.'
+        : m);
+    }
+    setBusy(false);
   };
 
   if (done) {
-    const cloud = window.PORTAL_BACKEND === 'supabase';
     return (
       <div className="rv-modal-shell" onClick={onClose}>
         <div className="rv-modal" onClick={e => e.stopPropagation()}>
           <div className="rv-modal-eyebrow">§ Access granted</div>
-          <h3 className="rv-modal-h">{app.name} approved.</h3>
+          <h3 className="rv-modal-h">{app.name} can sign in.</h3>
           <p className="rv-modal-body">
-            {cloud
-              ? <>The application is marked approved. To finish granting portal access, open <strong>Supabase Dashboard → Authentication → Users → Add user</strong> and create an account using the credentials below. The profile trigger will auto-create the vet profile with role <code>vet</code>.</>
-              : <>Share these credentials by secure channel (email, encrypted message, or phone). The vet should change the password after their first sign-in.</>
-            }
+            The account is created and the application is marked approved. Send them the sign-in
+            below — the email is already written, including what to do first.
           </p>
           <div className="rv-modal-creds">
+            <div className="rv-cred-row"><span>Sign-in page</span><code>{portalUrl}</code></div>
             <div className="rv-cred-row"><span>Email</span><code>{app.email}</code></div>
             <div className="rv-cred-row"><span>Password</span><code>{password}</code></div>
           </div>
+          <details className="sd-preview rv-inv-preview"><summary>What the welcome email says</summary><pre>{welcome}</pre></details>
           <div className="rv-modal-actions">
-            <button className="btn" onClick={onClose}>Done</button>
+            <button className="btn btn-ghost" onClick={onClose}>Done</button>
+            <button className="btn btn-clay" onClick={emailWelcome}>{emailed ? 'Open email again' : 'Email their sign-in →'}</button>
           </div>
+          {emailed && <p className="rv-inv-foot">Draft opened. The temporary password is in the message — send it and they can sign in straight away.</p>}
         </div>
       </div>
     );
@@ -232,12 +279,10 @@ function ApproveModal({ app, onClose, onConfirm }) {
     <div className="rv-modal-shell" onClick={onClose}>
       <div className="rv-modal" onClick={e => e.stopPropagation()}>
         <div className="rv-modal-eyebrow">§ Approve application</div>
-        <h3 className="rv-modal-h">Grant {app.name} portal access?</h3>
+        <h3 className="rv-modal-h">{app.status === 'approved' ? `Create ${app.name}'s sign-in?` : `Grant ${app.name} portal access?`}</h3>
         <p className="rv-modal-body">
-          {window.PORTAL_BACKEND === 'supabase'
-            ? <>This marks the application as approved and generates a temporary password. You'll then create the actual user in <strong>Supabase Dashboard</strong> with these credentials (a one-minute step).</>
-            : <>This creates a portal account for <strong>{app.email}</strong> and generates a temporary password. The vet will be able to sign in immediately at <code>portal.html</code>.</>
-          }
+          This creates the portal sign-in for <strong>{app.email}</strong> with the temporary password
+          below, and marks the application approved. They can sign in straight away — no Supabase step.
         </p>
         <div className="rv-modal-field">
           <label className="form-label">Temporary password</label>
@@ -252,11 +297,12 @@ function ApproveModal({ app, onClose, onConfirm }) {
               Regenerate
             </button>
           </div>
-          <div className="form-help">Default-generated; replace with your own if you prefer.</div>
+          <div className="form-help">Default-generated; replace with your own if you prefer. At least 8 characters.</div>
         </div>
+        {err && <div className="error-bar" style={{ marginTop: 12 }}>{err}</div>}
         <div className="rv-modal-actions">
           <button className="btn btn-ghost" onClick={onClose}>Cancel</button>
-          <button className="btn btn-clay" onClick={confirm} disabled={!password}>Approve and create account <span className="arrow">→</span></button>
+          <button className="btn btn-clay" onClick={confirm} disabled={busy || password.length < 8}>{busy ? 'Creating…' : <>Approve and create account <span className="arrow">→</span></>}</button>
         </div>
       </div>
     </div>

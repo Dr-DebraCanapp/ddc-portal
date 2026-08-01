@@ -326,9 +326,8 @@ function ReviewerFileTile({ file, onOpen }) {
    ============================================================ */
 function ReportBuilder({ c, session, onSaved, billingEntities, billingOn }) {
   const initial = c.report || {};
-  const [findings, setFindings] = rcUseState(initial.findings || '');
-  const [impression, setImpression] = rcUseState(initial.impression || '');
-  const [recommendations, setRecommendations] = rcUseState(initial.recommendations || '');
+  const [body, setBody] = rcUseState(() => (window.reportBody ? window.reportBody(initial) : (initial.body || '')));
+  const [showPreview, setShowPreview] = rcUseState(false);
   const [savedAt, setSavedAt] = rcUseState(initial.updatedAt || null);
   const [saving, setSaving] = rcUseState(false);
   const [finalizing, setFinalizing] = rcUseState(false);
@@ -337,9 +336,7 @@ function ReportBuilder({ c, session, onSaved, billingEntities, billingOn }) {
 
   // Reset state when switching cases
   rcUseEffect(() => {
-    setFindings(initial.findings || '');
-    setImpression(initial.impression || '');
-    setRecommendations(initial.recommendations || '');
+    setBody(window.reportBody ? window.reportBody(initial) : (initial.body || ''));
     setSavedAt(initial.updatedAt || null);
   }, [c.id]);
 
@@ -353,12 +350,12 @@ function ReportBuilder({ c, session, onSaved, billingEntities, billingOn }) {
     debounceRef.current = setTimeout(async () => {
       setSaving(true);
       await window.PortalDB.saveReport(c.id, {
-        findings, impression, recommendations,
+        body,
         finalized: false,
         signedBy: session.name,
       });
-      // Advance to "drafted" timeline if findings/impression have content
-      if ((findings.trim() || impression.trim()) && c.status !== 'reported') {
+      // Advance to "drafted" once there's something written
+      if (body.trim() && c.status !== 'reported') {
         await window.PortalDB.advanceTimeline(c.id, 'drafted');
       }
       setSavedAt(new Date().toISOString());
@@ -367,17 +364,15 @@ function ReportBuilder({ c, session, onSaved, billingEntities, billingOn }) {
     }, 800);
   };
   rcUseEffect(() => {
-    if (findings === (initial.findings || '') &&
-        impression === (initial.impression || '') &&
-        recommendations === (initial.recommendations || '')) return;
+    if (body === (window.reportBody ? window.reportBody(initial) : (initial.body || ''))) return;
     queueSave();
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
     // eslint-disable-next-line
-  }, [findings, impression, recommendations]);
+  }, [body]);
 
   const finalize = async () => {
-    if (!findings.trim() || !impression.trim()) {
-      alert('Findings and impression are required before finalizing.');
+    if (!body.trim()) {
+      alert('Write or paste the report before finalizing.');
       return;
     }
     setShowInvoice(true);
@@ -391,7 +386,7 @@ function ReportBuilder({ c, session, onSaved, billingEntities, billingOn }) {
       try { await window.PortalDB.setCaseBilling(c.id, billing); } catch (e) { /* non-fatal */ }
     }
     await window.PortalDB.saveReport(c.id, {
-      findings, impression, recommendations,
+      body,
       finalized: true,
       signedBy: 'Debra A. Canapp, DVM, DACVSMR, CCRT, CVA',
       signedAt: new Date().toISOString(),
@@ -419,7 +414,7 @@ function ReportBuilder({ c, session, onSaved, billingEntities, billingOn }) {
   const previewReport = () => {
     const w = window.open('', '_blank', 'width=820,height=1000');
     if (!w) return;
-    w.document.write(window.buildReportHTML(c, { findings, impression, recommendations, signedBy: session.name, draft: !isFinalized }));
+    w.document.write(window.buildReportHTML(c, { body, signedBy: session.name, draft: !isFinalized }));
     w.document.close();
   };
 
@@ -429,7 +424,7 @@ function ReportBuilder({ c, session, onSaved, billingEntities, billingOn }) {
         <div>
           <div className="rv-section-eyebrow">Diagnostic report</div>
           <div className="rv-report-title">
-            {isFinalized ? 'Delivered' : (findings || impression ? 'Draft' : 'New report')}
+            {isFinalized ? 'Delivered' : (body.trim() ? 'Draft' : 'New report')}
           </div>
         </div>
         <div className="rv-report-status">
@@ -441,36 +436,25 @@ function ReportBuilder({ c, session, onSaved, billingEntities, billingOn }) {
       </div>
 
       <div className="rv-report-field">
-        <label>Findings</label>
-        <textarea
-          value={findings}
-          onChange={e => setFindings(e.target.value)}
-          placeholder="Describe sonographic findings by anatomical region. Note echogenicity, fiber pattern, peri-tendinous changes, joint effusion, ROI measurements…"
-          disabled={isLocked}
-          rows={8}
-        />
-      </div>
-
-      <div className="rv-report-field">
-        <label>Impression / Diagnosis</label>
-        <textarea
-          value={impression}
-          onChange={e => setImpression(e.target.value)}
-          placeholder="Working diagnosis, severity grade, ddx considered and excluded…"
-          disabled={isLocked}
-          rows={4}
-        />
-      </div>
-
-      <div className="rv-report-field">
-        <label>Recommendations</label>
-        <textarea
-          value={recommendations}
-          onChange={e => setRecommendations(e.target.value)}
-          placeholder="Activity restriction, follow-up imaging timeline, treatment options, return-to-work guidance…"
-          disabled={isLocked}
-          rows={5}
-        />
+        <div className="rv-report-labelrow">
+          <label>Report</label>
+          <button type="button" className="rv-prev-toggle" onClick={() => setShowPreview(v => !v)} disabled={!body.trim()}>
+            {showPreview ? 'Back to text' : 'Preview formatting'}
+          </button>
+        </div>
+        {showPreview ? (
+          <div className="rv-report-preview" dangerouslySetInnerHTML={{ __html: (window.formatReportBody ? window.formatReportBody(body) : '') || '<p><em>Nothing written yet.</em></p>' }} />
+        ) : (
+          <textarea
+            value={body}
+            onChange={e => setBody(e.target.value)}
+            placeholder={'Dictate in Talkatoo and paste the whole report here.\n\nA short line ending in a colon becomes a heading — Findings:, Impression:, Recommendations:. "Left shoulder: the biceps tendon…" sets the region in bold. Lines starting with a dash become a list. Blank lines separate paragraphs. Everything is typeset when you finalize.'}
+            disabled={isLocked}
+            rows={22}
+            spellCheck={true}
+          />
+        )}
+        {!isLocked && <div className="rv-report-hint">Paste plain text — headings, paragraphs and lists are set for you on the finished report.</div>}
       </div>
 
       <div className="rv-report-sig">
@@ -489,8 +473,8 @@ function ReportBuilder({ c, session, onSaved, billingEntities, billingOn }) {
           <button
             className="btn btn-clay"
             onClick={finalize}
-            disabled={finalizing || !findings.trim() || !impression.trim()}
-            title={!findings.trim() || !impression.trim() ? 'Add findings and impression to finalize' : 'Finalize and deliver the report'}
+            disabled={finalizing || !body.trim()}
+            title={!body.trim() ? 'Write or paste the report to finalize' : 'Finalize and deliver the report'}
           >
             {finalizing ? 'Delivering…' : <>Finalize &amp; deliver <span className="arrow">→</span></>}
           </button>

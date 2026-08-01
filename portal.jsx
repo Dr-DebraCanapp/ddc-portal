@@ -17,6 +17,10 @@ function Authed({ session, logout }) {
   const goHome = () => setView({ name: 'dashboard' });
   const goNew = () => setView({ name: 'new' });
   const goOpen = (id) => setView({ name: 'detail', id });
+  const goFees = () => setView({ name: 'fees' });
+
+  // the fee schedule reads the live rate card, so load it once on entry
+  pAppUseEffect(() => { if (window.SchedRates && window.SchedRates.load) window.SchedRates.load().catch(() => {}); }, []);
 
   return (
     <div className="portal-page">
@@ -24,8 +28,10 @@ function Authed({ session, logout }) {
         session={session}
         logout={logout}
         onHome={goHome}
-        crumb={view.name === 'dashboard' ? 'Dashboard' : view.name === 'new' ? 'New referral' : 'Case detail'}
+        onFees={goFees}
+        crumb={view.name === 'dashboard' ? 'Dashboard' : view.name === 'new' ? 'New referral' : view.name === 'fees' ? 'Fee schedule' : 'Case detail'}
       />
+      {view.name === 'fees' && window.PortalFeesView && <window.PortalFeesView onBack={goHome} session={session} />}
       {view.name === 'dashboard' && <window.Dashboard session={session} onNew={goNew} onOpen={goOpen} />}
       {view.name === 'new' && <NewCaseView session={session} onSubmit={(id) => goOpen(id)} onCancel={goHome} />}
       {view.name === 'detail' && <CaseDetailView id={view.id} onBack={goHome} session={session} />}
@@ -521,6 +527,7 @@ function CaseDetailView({ id, onBack, session }) {
     const w = window.open('', '_blank', 'width=820,height=1000');
     if (!w) return;
     w.document.write(window.buildReportHTML(c, {
+      body: c.report.body,
       findings: c.report.findings, impression: c.report.impression,
       recommendations: c.report.recommendations, signedBy: c.report.signedBy,
       draft: !c.report.finalized,
