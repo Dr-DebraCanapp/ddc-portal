@@ -464,6 +464,9 @@ window.PortalDB = {
   getAccounts, saveAccounts, addAccount,
   saveReport, setCaseBilling, advanceTimeline, nowLabel,
   getComments, addComment, getAllComments,
+  // Local mode has no account directory — the card says so rather than crashing.
+  getVet: async () => null,
+  updateVet: async () => { throw new Error('Vet details can only be edited when signed in to the live system.'); },
   saveInvoice, setInvoicePaid,
   ensureSession: async () => true,
   async uploadFiles(caseId, recs, onProgress) {

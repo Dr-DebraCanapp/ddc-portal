@@ -215,7 +215,9 @@ function RefVetBlock({ c }) {
       <div className="rv-section-eyebrow">Submitted by</div>
       <div className="rv-refvet-grid">
         <div>
-          <div className="rv-refvet-name">{c.referringVet || '—'}</div>
+          <div className="rv-refvet-name">
+            <window.VetName name={c.referringVet} email={c.referringEmail} userId={c.submittedBy} fallback={c.referringEmail} />
+          </div>
           <div className="rv-refvet-clinic">{c.referringClinic || '—'}</div>
         </div>
         <div className="rv-refvet-meta">
@@ -481,7 +483,7 @@ function ReportBuilder({ c, session, onSaved, billingEntities, billingOn }) {
         )}
         {isFinalized && (
           <div className="rv-final-note">
-            Report delivered. The referring veterinarian has been notified.
+            Report delivered. The referring veterinarian can now read it in the portal, and is emailed automatically.
           </div>
         )}
       </div>

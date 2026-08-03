@@ -541,7 +541,11 @@ function CaseRow({ c, unread, onOpen, onAck }) {
         <div className="rv-sig">{c.breed} · {c.age} · {c.sex}</div>
       </div>
       <div className="rv-cell">
-        <div className="rv-vet">{c.referringVet || <span className="dim">—</span>}</div>
+        <div className="rv-vet">
+          {c.referringVet || c.referringEmail
+            ? <window.VetName name={c.referringVet} email={c.referringEmail} userId={c.submittedBy} fallback={c.referringEmail} />
+            : <span className="dim">—</span>}
+        </div>
         <div className="rv-vet-sub">{c.referringClinic}</div>
       </div>
       <div className="rv-cell">

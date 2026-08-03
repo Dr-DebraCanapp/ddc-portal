@@ -288,6 +288,7 @@ function DayDrawer({ day, entity, entities, role, onClose, on }) {
 const EMPTY_PATIENT = {
   name: '', species: 'Canine', breed: '', sex: 'M/N', age: '', weight: '', occupation: '',
   service: 'scan', injections: 0, rush: false, rushBy: '',
+  studyCode: '',
   owner: '', vet: '', sites: [], visitType: 'initial', rate: 'initial',
   demeanor: 'calm', fasted: true, history: '', notes: '', files: [], aiSummary: null,
 };
@@ -295,7 +296,10 @@ const EMPTY_PATIENT = {
 const SC_FILE_BADGE = (f) => (f && f.external ? 'LINK' : { dicom: 'DCM', image: 'IMG', pdf: 'PDF', video: 'VID', doc: 'DOC' }[window.schedFileKind(f)] || 'FILE');
 
 function PatientEditorModal({ day, patient, role, onSave, onClose }) {
-  const [f, setF] = useState(() => patient ? { ...patient, files: patient.files || [] } : { ...EMPTY_PATIENT, vet: '' });
+  const [f, setF] = useState(() => patient
+    ? { ...patient, files: patient.files || [] }
+    : { ...EMPTY_PATIENT, vet: '' });
+  const [linkStudy, setLinkStudy] = useState(null);
   const set = (k, v) => setF(prev => ({ ...prev, [k]: v }));
   const toggleSite = (id) => setF(prev => ({ ...prev, sites: prev.sites.includes(id) ? prev.sites.filter(s => s !== id) : [...prev.sites, id] }));
   const addFiles = (fileList) => {
@@ -378,6 +382,12 @@ function PatientEditorModal({ day, patient, role, onSave, onClose }) {
           </div>
           <div className="form-row"><label className="form-label">Owner<span className="req">*</span></label><input className="form-input" value={f.owner} onChange={e => set('owner', e.target.value)} placeholder="Owner name" /></div>
           <div className="form-row"><label className="form-label">Referring DVM<span className="req">*</span></label><input className="form-input" value={f.vet} onChange={e => set('vet', e.target.value)} placeholder="Dr. …" /></div>
+          {window.StudyCodeField && <window.StudyCodeField value={f.studyCode || ''} onChange={v => set('studyCode', v)} />}
+          {window.IncomingStudyLink && (
+            <div style={{ gridColumn: '1 / -1' }}>
+              <window.IncomingStudyLink code={f.studyCode} name={f.name} picked={linkStudy} onPick={setLinkStudy} />
+            </div>
+          )}
           <div className="form-row"><label className="form-label">Service</label>
             <select className="form-select" value={f.service || 'scan'} onChange={e => { const v = e.target.value; setF(prev => ({ ...prev, service: v, rate: v, injections: v === 'injection' ? Math.max(1, prev.injections || prev.sites.length || 1) : 0 })); }}>
               <option value="scan">Diagnostic ultrasound · $1,200</option>
@@ -491,7 +501,7 @@ function PatientEditorModal({ day, patient, role, onSave, onClose }) {
         <div className="sc-modal-actions">
           {missing.length > 0 && <span className="sc-need">Still needed: {missing.join(', ')}</span>}
           <button className="btn btn-ghost" onClick={onClose}>Cancel</button>
-          <button className="btn btn-clay" disabled={!valid} onClick={() => onSave(day, { ...f, rate: f.service || 'scan' })}>{patient ? 'Save patient' : 'Add to day'}</button>
+          <button className="btn btn-clay" disabled={!valid} onClick={() => onSave(day, { ...f, rate: f.service || 'scan', __linkStudy: linkStudy || null })}>{patient ? 'Save patient' : 'Add to day'}</button>
         </div>
       </div>
     </div>
@@ -822,6 +832,7 @@ function DaySheetModal({ day, onClose }) {
                     <div className="sc-ds-pat-row"><span className="k">Owner</span>{p.owner}</div>
                     <div className="sc-ds-pat-row"><span className="k">Referring</span>{p.vet}</div>
                     <div className="sc-ds-pat-row"><span className="k">Sites</span>{p.sites.map(s => S().site(s).name).join(', ')}</div>
+                    {p.studyCode && <div className="sc-ds-pat-row"><span className="k">Clinic patient ID</span><span className="mono">{p.studyCode}</span> — send images with this as the Accession Number</div>}
                     <div className="sc-ds-pat-row"><span className="k">History</span><span className="hist">{p.history || '—'}</span></div>
                     {p.aiSummary && p.aiSummary.summary && <div className="sc-ds-pat-row"><span className="k">Intake summary</span><span className="hist">{p.aiSummary.summary}</span></div>}
                     {p.aiSummary && (p.aiSummary.mskPoints || p.aiSummary.keyPoints || []).length > 0 && <div className="sc-ds-pat-row"><span className="k">Ortho / sports med</span><span className="hist">{(p.aiSummary.mskPoints && p.aiSummary.mskPoints.length ? p.aiSummary.mskPoints : p.aiSummary.keyPoints).join(' · ')}</span></div>}

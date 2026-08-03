@@ -525,6 +525,34 @@
   /* ============================================================
      INSTALL — replace window.PortalDB
      ============================================================ */
+  /* ============================================================
+     REFERRING VET DIRECTORY
+     Reads the vet_directory view. Matched by account id when we have
+     one, otherwise by email — older cases predate submitted_by.
+     ============================================================ */
+  async function getVet(key) {
+    if (!key) return null;
+    let q = sb.from('vet_directory').select('*');
+    if (key.id) q = q.eq('id', key.id);
+    else if (key.email) q = q.ilike('email', key.email);
+    else return null;
+    const { data, error } = await q.limit(1).maybeSingle();
+    if (error) throw new Error(error.message);
+    if (data || !key.email || !key.id) return data || null;
+    // Account id didn't resolve (deleted account) — fall back to the email.
+    const alt = await sb.from('vet_directory').select('*').ilike('email', key.email).limit(1).maybeSingle();
+    return alt.data || null;
+  }
+
+  async function updateVet(id, fields) {
+    const allowed = ['name', 'clinic', 'phone', 'license', 'state', 'country', 'specialty', 'notes'];
+    const patch = {};
+    allowed.forEach(k => { if (k in fields) patch[k] = fields[k] === '' ? null : fields[k]; });
+    const { error } = await sb.from('profiles').update(patch).eq('id', id);
+    if (error) throw new Error(error.message);
+    return getVet({ id });
+  }
+
   window.PortalDB = {
     // cases
     putCase, getCase, getAllCases, deleteCase,
@@ -540,6 +568,8 @@
     saveReport, setCaseBilling, advanceTimeline, nowLabel,
     // comments
     getComments, addComment, getAllComments,
+    // referring-vet directory
+    getVet, updateVet,
     saveInvoice, setInvoicePaid,
     ensureSession, uploadFiles,
     // misc

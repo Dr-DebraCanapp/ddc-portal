@@ -70,6 +70,7 @@
       fasted: r.fasted !== false, notes: r.notes || '', files: r.files || [],
       weight: r.weight || '', occupation: r.occupation || '',
       service: r.service || 'scan', injections: r.injections || 0, rush: !!r.rush, rushBy: r.rush_by || '',
+      studyCode: r.study_code || '',
       aiSummary: r.ai_summary || null,
       caseId: r.case_id || null, cancelled: r.cancelled || null, position: r.position || 0,
     };
@@ -90,6 +91,7 @@
       notes: p.notes || null, files, case_id: p.caseId || null,
       weight: p.weight || null, occupation: p.occupation || null,
       service: p.service || 'scan', injections: p.injections || 0, rush: !!p.rush, rush_by: p.rushBy || null,
+      study_code: p.studyCode || null,
       ai_summary: p.aiSummary || null,
       cancelled: p.cancelled || null, position: p.position || 0,
     };
@@ -128,6 +130,8 @@
       matchDay: r.match_day_id || null, matchCase: r.match_case_id || null,
       matchName: r.match_name || null, route: r.route || null, status: r.status || 'unrouted',
       bucketPath: r.bucket_path || null,
+      accession: r.accession || '', aeTitle: r.ae_title || '',
+      matchedBy: (r.meta && r.meta.matched_by) || null,
     };
   }
 
@@ -207,6 +211,99 @@
     },
     async saveStudy(st) {
       check(await sb.from('sched_incoming_studies').update({ route: st.route, status: st.status }).eq('id', st.id), 'Could not route the study');
+    },
+
+    /* ---- DICOM device registry + inbox ---- */
+    async loadDevices() {
+      const res = await sb.from('sched_devices').select('*').order('name');
+      if (res.error) { if (!/does not exist|schema cache/i.test(res.error.message || '')) console.warn('[sched-cloud] devices:', res.error.message); return []; }
+      return (res.data || []).map(r => ({
+        id: r.id, clinicId: r.clinic_id || '', name: r.name, aeTitle: r.ae_title,
+        ip: r.ip || '', modality: r.modality || '', status: r.status || 'active',
+        note: r.note || '', lastSeen: r.last_seen || null,
+      }));
+    },
+    async saveDevice(d) {
+      check(await sb.from('sched_devices').upsert({
+        id: d.id, clinic_id: d.clinicId || null, name: d.name, ae_title: d.aeTitle,
+        ip: d.ip || null, modality: d.modality || null, status: d.status || 'active', note: d.note || null,
+      }), 'Could not save the device');
+    },
+    async deleteDevice(id) {
+      check(await sb.from('sched_devices').delete().eq('id', id), 'Could not remove the device');
+    },
+    /* Studies that arrived but haven't been filed — offered when a patient
+       with a matching code or name is being edited. */
+    /* ---- alert recipients (text / email) ---- */
+    async loadRecipients() {
+      const res = await sb.from('notify_recipients').select('*').order('name');
+      if (res.error) {
+        if (/does not exist|schema cache/i.test(res.error.message || '')) return null;  // migration not run
+        throw new Error(res.error.message);
+      }
+      return res.data || [];
+    },
+    async saveRecipient(r) {
+      const row = {
+        id: r.id || 'nr-' + Math.random().toString(36).slice(2, 10),
+        name: r.name, phone: r.phone || null, email: r.email || null,
+        sms: !!r.sms, email_on: !!r.email_on,
+        events: (r.events && r.events.length) ? r.events : ['*'],
+        quiet_from: r.quiet_from || null, quiet_to: r.quiet_to || null,
+        tz: r.tz || 'America/New_York', active: r.active !== false,
+      };
+      check(await sb.from('notify_recipients').upsert(row), 'Could not save the recipient');
+      return row;
+    },
+    async deleteRecipient(id) {
+      check(await sb.from('notify_recipients').delete().eq('id', id), 'Could not remove the recipient');
+    },
+    async loadNotifyLog(limit) {
+      const res = await sb.from('notify_queue')
+        .select('id, event, urgent, title, channel, address, status, last_error, created_at, sent_at, send_after')
+        .order('id', { ascending: false }).limit(limit || 25);
+      if (res.error) return [];
+      return res.data || [];
+    },
+    async sendTestAlert() {
+      const res = await sb.rpc('notify_test');
+      if (res.error) throw new Error(res.error.message);
+      // Ask the dispatcher to run now rather than waiting for the next minute.
+      try {
+        const { data: s } = await sb.auth.getSession();
+        const token = s && s.session && s.session.access_token;
+        const url = cfg.url || '';
+        if (token && url) {
+          await fetch(url.replace(/\/$/, '') + '/functions/v1/notify-dispatch', {
+            method: 'POST', headers: { authorization: 'Bearer ' + token, 'content-type': 'application/json' }, body: '{}',
+          });
+        }
+      } catch (e) { /* cron will pick it up within a minute */ }
+    },
+
+    async loadUnroutedStudies() {
+      const res = await sb.from('sched_incoming_studies')
+        .select('id, patient_name, accession, modality, images, device, clinic_id, bucket_path, received_at')
+        .eq('status', 'unrouted').order('received_at', { ascending: false }).limit(50);
+      if (res.error) { if (!/does not exist|schema cache|column/i.test(res.error.message || '')) console.warn('[sched-cloud] inbox:', res.error.message); return []; }
+      return (res.data || []).map(r => ({
+        id: r.id, patientName: r.patient_name, accession: r.accession || '',
+        modality: r.modality || '', images: r.images || 0, device: r.device || '',
+        clinicId: r.clinic_id || '', bucketPath: r.bucket_path || null, receivedAt: r.received_at,
+      }));
+    },
+    async linkStudyById(studyId, dayId, patient) {
+      const res = await sb.from('sched_incoming_studies').select('*').eq('id', studyId).maybeSingle();
+      const row = check(res, 'Could not read the study');
+      if (!row) return;
+      // Re-read the row we just wrote: the in-memory patient's files may be
+      // stale by now, and this update overwrites that column wholesale.
+      const cur = await sb.from('sched_patients').select('files').eq('id', patient.id).maybeSingle();
+      const fresh = { ...patient, files: (cur.data && cur.data.files) || patient.files || [] };
+      await SchedCloud.routeStudyToPatient({
+        id: row.id, bucketPath: row.bucket_path, patient: row.patient_name,
+        desc: row.description, images: row.images,
+      }, fresh);
     },
 
     /* ---- rate cards (editable prices, versioned by date) ---- */
@@ -321,9 +418,38 @@
     // File a routed study onto a scheduled patient's records.
     async routeStudyToPatient(study, patient) {
       if (study.bucketPath) {
-        const files = [...(patient.files || []).map(f => ({ name: f.name, kind: f.kind || null, path: f.path || null, size: f.size || null })),
-          { name: `${study.desc || 'DICOM study'} (${study.images} img, auto-sent).zip`, kind: 'dicom-archive', path: study.bucketPath, size: null }];
-        check(await sb.from('sched_patients').update({ files }).eq('id', patient.id), 'Could not attach the study to the patient');
+        // The router drops studies in incoming/, which only admins can read.
+        // Move it under {dayId}/{patientId}/ so the hospital can open it too —
+        // that path prefix IS the storage policy for hospital access.
+        const row = await sb.from('sched_patients').select('day_id,files').eq('id', patient.id).maybeSingle();
+        const dayId = (row.data && row.data.day_id) || patient.dayId || patient.day_id;
+        let path = study.bucketPath;
+        let moved = false;
+        if (dayId) {
+          const dest = `${dayId}/${patient.id}/${Date.now()}_study.zip`;
+          const cp = await sb.storage.from('sched-files').copy(study.bucketPath, dest);
+          if (!cp.error) { path = dest; moved = true; }
+        }
+        const base = (row.data && row.data.files) || patient.files || [];
+        const files = [...base.map(f => ({ name: f.name, kind: f.kind || null, path: f.path || null, size: f.size || null })),
+          { name: `${study.desc || 'DICOM study'}${study.images ? ` (${study.images} img, auto-sent)` : ' (auto-sent)'}.zip`, kind: 'dicom-archive', path, size: null }];
+        // .select() so we can see whether a row was actually matched — an
+        // update that hits nothing is not an error to PostgREST, and marking
+        // the study routed after one would lose it entirely.
+        const upd = await sb.from('sched_patients').update({ files }).eq('id', patient.id).select('id');
+        check(upd, 'Could not attach the study to the patient');
+        if (!upd.data || !upd.data.length) {
+          // Nothing was written, so drop the copy we just made and leave the
+          // original where it is — the study must stay openable in the inbox.
+          if (moved) await sb.storage.from('sched-files').remove([path]);
+          throw new Error('That patient record could not be found, so the study was left in the inbox.');
+        }
+        // Safe to retire the incoming copy only now that a patient row points
+        // at the new one.
+        if (moved) {
+          await sb.storage.from('sched-files').remove([study.bucketPath]);
+          try { await sb.from('sched_incoming_studies').update({ bucket_path: path }).eq('id', study.id); } catch (e) { /* row stays routed; path is cosmetic here */ }
+        }
       }
       check(await sb.from('sched_incoming_studies').update({
         route: 'schedule', status: 'routed-schedule',

@@ -169,9 +169,17 @@ function lengthFromHandles(d, col, row) {
 /* ============================================================
    VIEWER COMPONENT
    ============================================================ */
+/* Single-letter tool shortcuts. Deliberately avoids the arrow keys, which
+   step through the images. */
+const VIEWER_KEYS = {
+  v: 'Pan', z: 'Zoom', w: 'Wwwc',
+  c: 'Length', f: 'FreehandRoi', e: 'EllipticalRoi', r: 'RectangleRoi', g: 'Angle', p: 'Probe',
+  a: 'ArrowAnnotate', x: 'Eraser',
+};
+
 function DicomViewer({ caseId, files, initialFileIndex = 0, onClose }) {
   const [idx, setIdx] = vUseState(initialFileIndex);
-  const [tool, setTool] = vUseState('FreehandRoi');
+  const [tool, setTool] = vUseState('Pan');
   const [imageInfo, setImageInfo] = vUseState(null);
   const [loadError, setLoadError] = vUseState(null);
   const [loading, setLoading] = vUseState(false);
@@ -435,7 +443,56 @@ function DicomViewer({ caseId, files, initialFileIndex = 0, onClose }) {
     } catch (e) {}
   }, [tool, isImage, idx]);
 
+  /* --- Keyboard: arrows step through the images, letters pick a tool ------
+     Opens on Pan so a click never draws by accident; a measuring tool is
+     always a deliberate choice. */
+  vUseEffect(() => {
+    const onKey = (e) => {
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      const t = e.target;
+      const typing = t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable);
+      if (typing) return;
+      const step = (n) => {
+        e.preventDefault();
+        setIdx(i => Math.min(files.length - 1, Math.max(0, i + n)));
+      };
+      switch (e.key) {
+        case 'ArrowRight': case 'ArrowDown': case 'PageDown': return step(1);
+        case 'ArrowLeft': case 'ArrowUp': case 'PageUp': return step(-1);
+        case 'Home': e.preventDefault(); return setIdx(0);
+        case 'End': e.preventDefault(); return setIdx(files.length - 1);
+        case 'Escape': e.preventDefault(); return setTool('Pan');
+        case '[': e.preventDefault(); return rotate(-90);
+        case ']': e.preventDefault(); return rotate(90);
+        case 'h': case 'H': e.preventDefault(); return flip('h');
+        case 'j': case 'J': e.preventDefault(); return flip('v');
+        default: break;
+      }
+      const key = VIEWER_KEYS[e.key.toLowerCase()];
+      if (key) { e.preventDefault(); setTool(key); }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [files.length]);
+
   /* --- Actions --- */
+  const nudgeViewport = (fn) => {
+    const el = elementRef.current;
+    if (!el) return;
+    try {
+      const vp = cornerstone.getViewport(el);
+      if (!vp) return;
+      fn(vp);
+      cornerstone.setViewport(el, vp);
+    } catch (e) {}
+  };
+  // Radiographs often arrive on their side. Rotation is a viewport change,
+  // so measurements and annotations rotate with the image and stay valid.
+  const rotate = (deg) => nudgeViewport(vp => { vp.rotation = ((vp.rotation || 0) + deg + 360) % 360; });
+  const flip = (axis) => nudgeViewport(vp => {
+    if (axis === 'h') vp.hflip = !vp.hflip; else vp.vflip = !vp.vflip;
+  });
+
   const resetView = () => {
     if (elementRef.current) { try { cornerstone.reset(elementRef.current); } catch (e) {} }
   };
@@ -541,6 +598,7 @@ function DicomViewer({ caseId, files, initialFileIndex = 0, onClose }) {
           <div className="viewer-fname">{file.name}</div>
           <div className="viewer-fmeta">
             {idx + 1} of {files.length}
+            {files.length > 1 ? ' · ← → to step' : ''}
             {imageInfo && imageInfo.width ? ` · ${imageInfo.width} × ${imageInfo.height}px` : ''}
             {imageInfo && imageInfo.spacing ?
               ` · ${imageInfo.spacing.toFixed(4)} mm/px · calibrated from ${(window.PortalDicomMeta && window.PortalDicomMeta.CAL_SOURCE_LABEL[imageInfo.source]) || 'file'}`
@@ -548,8 +606,8 @@ function DicomViewer({ caseId, files, initialFileIndex = 0, onClose }) {
           </div>
         </div>
         <div className="viewer-pager">
-          <button className="vbar-btn icon" onClick={() => setIdx(Math.max(0, idx - 1))} disabled={idx === 0}>‹</button>
-          <button className="vbar-btn icon" onClick={() => setIdx(Math.min(files.length - 1, idx + 1))} disabled={idx >= files.length - 1}>›</button>
+          <button className="vbar-btn icon" onClick={() => setIdx(Math.max(0, idx - 1))} disabled={idx === 0} title="Previous image (←)">‹</button>
+          <button className="vbar-btn icon" onClick={() => setIdx(Math.min(files.length - 1, idx + 1))} disabled={idx >= files.length - 1} title="Next image (→)">›</button>
         </div>
       </div>
 
@@ -558,6 +616,8 @@ function DicomViewer({ caseId, files, initialFileIndex = 0, onClose }) {
           active={tool}
           setActive={setTool}
           onReset={resetView}
+          onRotate={rotate}
+          onFlip={flip}
           onClearAnnotations={clearAll}
           onDownload={downloadAnnotated}
           onStartCalibration={startCalibration}
@@ -827,32 +887,32 @@ function CalibrationPrompt({ onApply, onCancel }) {
 /* ============================================================
    TOOLBAR
    ============================================================ */
-function Toolbar({ active, setActive, onReset, onClearAnnotations, onDownload, onStartCalibration, hasSpacing }) {
+function Toolbar({ active, setActive, onReset, onRotate, onFlip, onClearAnnotations, onDownload, onStartCalibration, hasSpacing }) {
   const groups = [
+    {
+      label: 'Navigate',
+      tools: [
+        { id: 'Pan', label: 'Pan', glyph: '✥', key: 'V', help: 'Drag to move the image' },
+        { id: 'Zoom', label: 'Zoom', glyph: '⊕', key: 'Z', help: 'Drag up/down to zoom' },
+        { id: 'Wwwc', label: 'W/L', glyph: '◐', key: 'W', help: 'Window / Level — adjust contrast' },
+      ],
+    },
     {
       label: 'Measure',
       tools: [
-        { id: 'Length', label: 'Caliper', glyph: '—', help: 'Linear distance (cm with calibration)' },
-        { id: 'FreehandRoi', label: 'Freehand area', glyph: '◌', help: 'Trace any shape → area in cm²' },
-        { id: 'EllipticalRoi', label: 'Ellipse', glyph: '◯', help: 'Elliptical area + mean intensity' },
-        { id: 'RectangleRoi', label: 'Rectangle', glyph: '◻', help: 'Rectangular area + mean intensity' },
-        { id: 'Angle', label: 'Angle', glyph: '∠', help: '3-point angle' },
-        { id: 'Probe', label: 'Probe', glyph: '•', help: 'Single-pixel value' },
+        { id: 'Length', label: 'Caliper', glyph: '—', key: 'C', help: 'Linear distance (cm with calibration)' },
+        { id: 'FreehandRoi', label: 'Freehand area', glyph: '◌', key: 'F', help: 'Trace any shape → area in cm²' },
+        { id: 'EllipticalRoi', label: 'Ellipse', glyph: '◯', key: 'E', help: 'Elliptical area + mean intensity' },
+        { id: 'RectangleRoi', label: 'Rectangle', glyph: '◻', key: 'R', help: 'Rectangular area + mean intensity' },
+        { id: 'Angle', label: 'Angle', glyph: '∠', key: 'G', help: '3-point angle' },
+        { id: 'Probe', label: 'Probe', glyph: '•', key: 'P', help: 'Single-pixel value' },
       ],
     },
     {
       label: 'Annotate',
       tools: [
-        { id: 'ArrowAnnotate', label: 'Arrow + Text', glyph: '➜', help: 'Arrow with label' },
-        { id: 'Eraser', label: 'Eraser', glyph: '✕', help: 'Remove an annotation' },
-      ],
-    },
-    {
-      label: 'Navigate',
-      tools: [
-        { id: 'Wwwc', label: 'W/L', glyph: '◐', help: 'Window / Level — adjust contrast' },
-        { id: 'Pan', label: 'Pan', glyph: '✥', help: 'Drag to pan' },
-        { id: 'Zoom', label: 'Zoom', glyph: '⊕', help: 'Drag up/down to zoom' },
+        { id: 'ArrowAnnotate', label: 'Arrow + Text', glyph: '➜', key: 'A', help: 'Arrow with label' },
+        { id: 'Eraser', label: 'Eraser', glyph: '✕', key: 'X', help: 'Remove an annotation' },
       ],
     },
   ];
@@ -866,14 +926,40 @@ function Toolbar({ active, setActive, onReset, onClearAnnotations, onDownload, o
             {g.tools.map(t => (
               <button key={t.id} onClick={() => setActive(t.id)}
                       className={`tool-btn ${active === t.id ? 'active' : ''}`}
-                      title={`${t.label} — ${t.help}`}>
+                      title={`${t.label} — ${t.help} (${t.key})`}>
                 <span className="tool-glyph">{t.glyph}</span>
                 <span className="tool-label">{t.label}</span>
+                <span className="tool-key">{t.key}</span>
               </button>
             ))}
           </div>
         </div>
       ))}
+      <div className="tool-group">
+        <span className="tool-group-label">Orient</span>
+        <div className="tool-buttons">
+          <button className="tool-btn" onClick={() => onRotate(-90)} title="Rotate left 90° ([)">
+            <span className="tool-glyph">↶</span>
+            <span className="tool-label">Rotate left</span>
+            <span className="tool-key">[</span>
+          </button>
+          <button className="tool-btn" onClick={() => onRotate(90)} title="Rotate right 90° (])">
+            <span className="tool-glyph">↷</span>
+            <span className="tool-label">Rotate right</span>
+            <span className="tool-key">]</span>
+          </button>
+          <button className="tool-btn" onClick={() => onFlip('h')} title="Flip horizontally (H)">
+            <span className="tool-glyph">⇄</span>
+            <span className="tool-label">Flip H</span>
+            <span className="tool-key">H</span>
+          </button>
+          <button className="tool-btn" onClick={() => onFlip('v')} title="Flip vertically (J)">
+            <span className="tool-glyph">⇅</span>
+            <span className="tool-label">Flip V</span>
+            <span className="tool-key">J</span>
+          </button>
+        </div>
+      </div>
       <div className="tool-group tool-group-actions">
         <span className="tool-group-label">Actions</span>
         <div className="tool-buttons">

@@ -446,7 +446,15 @@ function ScheduleApp({ profile, boot }) {
       const patients = exists ? d.patients.map(p => p.id === id ? { ...pat } : p) : [...d.patients, { ...pat }];
       return { ...d, patients };
     });
-    Cloud.savePatient(day.id, pat).catch(oops);
+    // Wait for the patient row before filing anything onto it — the link
+    // updates that same row, and losing the race loses the study.
+    try { await Cloud.savePatient(day.id, pat); }
+    catch (e) { oops(e); return; }   // never file a study onto a row that failed to save
+    if (data.__linkStudy && Cloud.linkStudyById) {
+      Cloud.linkStudyById(data.__linkStudy, day.id, pat)
+        .then(() => flash('Study filed onto ' + (pat.name || 'the patient') + '.'))
+        .catch(oops);
+    }
     setModal(null);
     flash(isNew ? 'Patient added to the day.' : 'Patient updated.');
   };
@@ -853,14 +861,14 @@ function ImagingView({ incoming, setIncoming, days, flash, oops }) {
                     <div className="sc-study-main">
                       <div className="nm">{st.matchName || st.patient} <span className="raw">· sent as “{st.patient}”</span></div>
                       <div className="desc">{st.desc}</div>
-                      <div className="meta"><span className="sw" style={{ background: c ? c.color : 'var(--ink-4)' }} />{c ? c.name : 'Unknown clinic'} · {st.device} · {Sx.MONTHS[st.receivedAt.getMonth()].slice(0,3)} {st.receivedAt.getDate()}</div>
+                      <div className="meta"><span className="sw" style={{ background: c ? c.color : 'var(--ink-4)' }} />{c ? c.name : (st.aeTitle ? `Unregistered device ${st.aeTitle}` : 'Unknown clinic')} · {st.device} · {Sx.MONTHS[st.receivedAt.getMonth()].slice(0,3)} {st.receivedAt.getDate()}{st.accession ? <span className="mono"> · {st.accession}</span> : null}</div>
                     </div>
                     <div className="sc-study-route">
                       {hasMatch ? (
-                        <div className="sc-match">
-                          <div className="mlab">Auto-matched</div>
-                          <div className="mval">{st.matchDay ? dayLabel(st.matchDay) : st.matchCase ? `Remote-read ${st.matchCase}` : ''}</div>
-                        </div>
+                          <div className="sc-match">
+                            <div className="mlab">{st.matchedBy === 'code' ? 'Matched by patient ID' : 'Matched by name'}</div>
+                            <div className="mval">{st.matchDay ? dayLabel(st.matchDay) : st.matchCase ? `Remote-read ${st.matchCase}` : ''}</div>
+                          </div>
                       ) : <div className="sc-match nomatch"><div className="mlab">No match</div><div className="mval">Assign manually</div></div>}
                       {picking ? (
                         <div className="sc-study-btns" style={{ flexWrap: 'wrap', gap: 6 }}>
@@ -908,7 +916,7 @@ function ImagingView({ incoming, setIncoming, days, flash, oops }) {
         <React.Fragment>
           <div className="sc-dicom-note">
             <span className="ic">◑</span>
-            <div>Point each clinic's ultrasound / radiology unit at the destination below. We accept studies over <strong>DICOM C-STORE</strong> (classic modality send) and <strong>DICOMweb STOW-RS</strong> (web send). Studies auto-match to a scheduled patient or a remote-read case by patient name; anything ambiguous waits in the inbox for you.</div>
+            <div>Point each clinic's ultrasound / radiology unit at the destination below. We accept studies over <strong>DICOM C-STORE</strong> (classic modality send) and <strong>DICOMweb STOW-RS</strong> (web send). Each machine is identified by its <strong>calling AE Title</strong>, registered below — that is how a study is attributed to a hospital. To land it on the right patient, record the patient's <strong>own ID from the clinic's system</strong> on the patient form — their machine already sends it as the <strong>Accession Number</strong>, so nothing changes on their end. Without an ID we fall back to matching the patient's name against that hospital's scheduled patients and open remote-read cases; anything ambiguous waits in the inbox for you.</div>
           </div>
           <div className="sc-dicom-dest">
             <div className="dh">Send-to destination — give this to each clinic's imaging tech</div>
@@ -925,18 +933,15 @@ function ImagingView({ incoming, setIncoming, days, flash, oops }) {
             <span className="ic" style={{ color: 'var(--ink-3)' }}>‹›</span>
             <div><strong>Server status:</strong> the receiver (Orthanc) + router package is in <span className="mono">dicom-intake/</span> — deploy per <strong>DICOM-INTAKE-SETUP.md</strong>. Until it's live, use manual .dcm upload on each patient.</div>
           </div>
-          <div className="dh" style={{ margin: '26px 0 12px', fontSize: 10.5, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'var(--ink-3)', fontWeight: 600 }}>Registered clinic devices</div>
-          <div className="sc-device-list">
-            {Sx.CLINICS.filter(c => c.status !== 'pending').slice(0, 8).map(c => (
-              <div key={c.id} className="sc-device">
-                <span className="sw" style={{ background: c.color || 'var(--ink-4)' }} />
-                <div className="dn">{c.name}</div>
-                <div className="ae mono">AE: {c.id.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8)}_MOD</div>
-                <span className="sc-acct active">Linked</span>
-              </div>
-            ))}
-            {Sx.CLINICS.filter(c => c.status !== 'pending').length === 0 && <p className="rv-sub">No active clinics yet.</p>}
-          </div>
+          {window.DeviceRegistry
+            ? <window.DeviceRegistry clinics={Sx.CLINICS} flash={flash} oops={oops} />
+            : (
+              <React.Fragment>
+                <div className="dh" style={{ margin: '26px 0 12px', fontSize: 10.5, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'var(--ink-3)', fontWeight: 600 }}>Registered clinic devices</div>
+                <p className="rv-sub">Device registry unavailable.</p>
+              </React.Fragment>
+            )}
+          {window.NotifyPanel && <window.NotifyPanel flash={flash} oops={oops} />}
         </React.Fragment>
       )}
     </React.Fragment>
