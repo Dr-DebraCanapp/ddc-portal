@@ -75,6 +75,7 @@
   <script src="config.js"></script>
   <script src="schedule-cloud.js"></script>
   <script type="text/babel" src="access-notice.jsx"></script>
+  <script type="text/babel" src="staff-nav.jsx"></script>
   <script type="text/babel">
     const { useState, useEffect } = React;
     const Cloud = window.SchedCloud;
@@ -84,30 +85,11 @@
 
     function Bar({ profile }) {
       return (
-        <header className="rv-bar">
-          <div className="rv-bar-inner">
-            <a href="Console.html" className="rv-brand">
-              <img src="assets/logo-mark.png" alt="" onError={e => { e.target.style.display = 'none'; }} />
-              <div>
-                <div className="rv-brand-name">Console</div>
-                <div className="rv-brand-sub">Dr. Debra Canapp · Everything in one place</div>
-              </div>
-            </a>
-            <nav className="rv-nav">
-              <a className="rv-nav-link active" href="Console.html">Home</a>
-              <a className="rv-nav-link" href="reviewer.html">Remote reads</a>
-              <a className="rv-nav-link" href="Schedule.html">In-person schedule</a>
-              <a className="rv-nav-link" href="Applications.html">Visit requests</a>
-            </nav>
-            <div className="rv-who">
-              <div className="rv-who-meta">
-                <div className="rv-who-name">{profile ? (profile.name || profile.email) : '—'}</div>
-                <div className="rv-who-role">Admin</div>
-              </div>
-              <button className="rv-logout" onClick={() => Cloud.signOut()}>Sign out</button>
-            </div>
-          </div>
-        </header>
+        <window.StaffBar
+          active="home"
+          who={profile ? (profile.name || profile.email) : '—'}
+          role={profile && profile.role === 'reviewer' ? 'Reviewing Veterinarian' : 'Practice Administrator'}
+        />
       );
     }
 

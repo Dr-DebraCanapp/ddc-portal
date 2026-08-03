@@ -996,7 +996,7 @@
 
 
 /* ---- alert recipients ---- */
-.nf-wrap { margin-top: 38px; padding-top: 30px; border-top: 1px solid var(--rule); }
+.nf-wrap { margin-top: 4px; }
 .nf-dh { margin-bottom: 8px; font-size: 10.5px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--ink-3); font-weight: 600; }
 .nf-intro { max-width: 68ch; margin-bottom: 20px; }
 .nf-warn { margin-bottom: 20px; }

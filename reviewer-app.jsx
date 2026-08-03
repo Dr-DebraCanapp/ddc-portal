@@ -221,33 +221,17 @@ function Console({ session, logout }) {
 
 function ReviewerBar({ session, logout, view, unread, onInbox, onApps }) {
   return (
-    <header className="rv-bar">
-      <div className="rv-bar-inner">
-        <a href="index.html" className="rv-brand" title="Public site">
-          <img src="assets/logo-mark.png" alt="" />
-          <div>
-            <div className="rv-brand-name">Reviewer Console</div>
-            <div className="rv-brand-sub">Dr. Debra Canapp · Internal</div>
+    <React.Fragment>
+      <window.StaffBar active="remote" who={session.name} role={session.role} />
+      <div className="rv-subbar">
+        <div className="sc-subbar-inner">
+          <div className="sc-seg">
+            <button className={view === 'inbox' ? 'active' : ''} onClick={onInbox}>Case inbox<window.UnreadBadge n={unread} label={`${unread || 0} case${unread === 1 ? '' : 's'} with new vet messages`} /></button>
+            <button className={view === 'apps' ? 'active' : ''} onClick={onApps}>Vet applications</button>
           </div>
-        </a>
-
-        <nav className="rv-nav">
-          <a className="rv-nav-link" href="Console.html" title="Everything in one place — remote reads + in-person" style={{ textDecoration: 'none' }}>⌂ Console</a>
-          <button className={view === 'inbox' ? 'active' : ''} onClick={onInbox}>Case inbox<window.UnreadBadge n={unread} label={`${unread || 0} case${unread === 1 ? '' : 's'} with new vet messages`} /></button>
-          <button className={view === 'apps' ? 'active' : ''} onClick={onApps}>Applications</button>
-          <a className="rv-nav-link" href="Schedule.html#billing" title="Invoices and statements — remote reads and in-person" style={{ textDecoration: 'none' }}>Billing</a>
-          <a className="rv-nav-link muted" href="Schedule.html" title="In-person scheduling (clinical days)" style={{ textDecoration: 'none' }}>In-person ↗</a>
-        </nav>
-
-        <div className="rv-who">
-          <div className="rv-who-meta">
-            <div className="rv-who-name">{session.name}</div>
-            <div className="rv-who-role">{session.role}</div>
-          </div>
-          <button className="rv-logout" onClick={logout}>Sign out</button>
         </div>
       </div>
-    </header>
+    </React.Fragment>
   );
 }
 

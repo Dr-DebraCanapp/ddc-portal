@@ -48,39 +48,26 @@ function Toast({ msg }) {
 }
 
 /* ---- top bar ----------------------------------------------- */
+/* The shared staff bar (staff-nav.jsx). Billing and Alerts live in this
+   app, so those two are handled in place rather than reloading. */
 function SchedBar({ profile, tab, onTab, role }) {
   const isHospital = profile && profile.role === 'hospital';
-  // Match how the rest of the app decides — the internal role, which also
-  // respects the admin's preview-as-clinic toggle.
   const isAdmin = role ? role === 'admin' : !isHospital;
-  const go = (t) => (e) => { if (onTab) { e.preventDefault(); onTab(t); } };
+  const active = tab === 'billing' ? 'billing' : tab === 'alerts' ? 'alerts' : 'schedule';
+  const onNav = (key) => {
+    if (!onTab) return false;
+    if (key === 'schedule') { onTab('calendar'); return true; }
+    if ((key === 'billing' || key === 'alerts') && isAdmin) { onTab(key); return true; }
+    return false;
+  };
   return (
-    <header className="rv-bar">
-      <div className="rv-bar-inner">
-        <a href="Schedule.html" className="rv-brand" title="In-person scheduling">
-          <img src="assets/logo-mark.png" alt="" onError={e => { e.target.style.display = 'none'; }} />
-          <div>
-            <div className="rv-brand-name">In-Person Scheduling</div>
-            <div className="rv-brand-sub">Dr. Debra Canapp · Traveling MSK Ultrasound</div>
-          </div>
-        </a>
-        <nav className="rv-nav">
-          {!isHospital && <a href="Console.html" className="rv-nav-link" title="Everything in one place — remote reads + in-person">⌂ Console</a>}
-          <a href="Schedule.html" className={`rv-nav-link ${!tab || (tab !== 'billing' && tab !== 'alerts') ? 'active' : ''}`} onClick={go('calendar')}>Schedule</a>
-          {isAdmin && <a href="Schedule.html" className={`rv-nav-link ${tab === 'billing' ? 'active' : ''}`} onClick={go('billing')} title="Invoices and statements — in-person and remote reads">Billing</a>}
-          {isAdmin && <a href="Schedule.html" className={`rv-nav-link ${tab === 'alerts' ? 'active' : ''}`} onClick={go('alerts')} title="Who gets texted when something needs a human">Alerts</a>}
-          {!isHospital && <a href="Applications.html" className="rv-nav-link">Visit requests</a>}
-          {!isHospital && <a href="reviewer.html" className="rv-nav-link muted" title="Remote-read referral portal (separate system)">Remote reads ↗</a>}
-        </nav>
-        <div className="rv-who">
-          <div className="rv-who-meta">
-            <div className="rv-who-name">{profile ? (profile.name || profile.email) : '—'}</div>
-            <div className="rv-who-role">{isHospital ? 'Hospital account' : 'Admin'}</div>
-          </div>
-          <button className="rv-logout" onClick={() => window.SchedCloud.signOut()}>Sign out</button>
-        </div>
-      </div>
-    </header>
+    <window.StaffBar
+      active={active}
+      who={profile ? (profile.name || profile.email) : '—'}
+      role={isHospital ? 'Hospital account' : (profile && profile.role === 'reviewer' ? 'Reviewing Veterinarian' : 'Practice Administrator')}
+      hospital={isHospital}
+      onNav={onNav}
+    />
   );
 }
 
@@ -251,6 +238,10 @@ function ScheduleApp({ profile, boot }) {
     return ['billing', 'alerts', 'imaging', 'clinics', 'calendar'].includes(h) ? h : 'calendar';
   });
   const [cur, setCur] = useState([Sx.TODAY.getFullYear(), Sx.TODAY.getMonth()]);
+  // Billing and Alerts are their own sections: no Schedule sub-bar, no
+  // "What's Next?" hero above them.
+  const inSchedule = !['billing', 'alerts'].includes(tab);
+
   useEffect(() => {
     // An admin-only tab must not survive a switch to clinic preview, or a
     // stale #billing bookmark opened by a hospital account — either leaves a
@@ -553,7 +544,9 @@ function ScheduleApp({ profile, boot }) {
       <SchedDragonflyField />
       <SchedBar profile={profile} tab={tab} onTab={setTab} role={role} />
 
-      {/* sub bar */}
+      {/* sub bar — only for Schedule's own views. Billing and Alerts are
+         separate sections in the top bar and own their whole page. */}
+      {inSchedule && (
       <div className="sc-subbar">
         <div className="sc-subbar-inner">
           <div className="sc-seg">
@@ -569,9 +562,11 @@ function ScheduleApp({ profile, boot }) {
           )}
         </div>
       </div>
+      )}
 
       <main className="rv-main">
-        {/* header */}
+        {/* header — Schedule's own; Billing and Alerts write their own */}
+        {inSchedule && (
         <div className="rv-head">
           <div className="rv-eyebrow">Schedule · {Sx.fmtLong(Sx.TODAY)}, {Sx.TODAY.getFullYear()}</div>
           <h2 className="rv-h">{role === 'admin' ? <>What's Next? <span style={{ color: 'var(--clay)', verticalAlign: 'baseline', display: 'inline-block', transform: 'translateY(4px)' }}><SchedDragonfly size={34} /></span></> : 'Book Dr. Canapp.'}</h2>
@@ -583,6 +578,14 @@ function ScheduleApp({ profile, boot }) {
                 : <>No clinic is linked to this view yet.</>}
           </p>
         </div>
+        )}
+
+        {tab === 'alerts' && role === 'admin' && (
+          <div className="rv-head">
+            <div className="rv-eyebrow">Alerts</div>
+            <h2 className="rv-h">Who hears about what.</h2>
+          </div>
+        )}
 
         {role === 'clinic' && myClinic && (
           <div className="sc-clinic-banner">

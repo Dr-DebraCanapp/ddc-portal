@@ -1010,3 +1010,8 @@
 .vc-appnote p { margin: 6px 0 0; font-size: 13px; line-height: 1.6; color: var(--ink-2); }
 .vc-actions { display: flex; gap: 8px; margin-top: 22px; }
 .vc-empty { padding: 28px 0; font-size: 13.5px; color: var(--ink-3); }
+
+
+/* ---- reviewer sub-bar (matches Schedule's) ---- */
+.rv-subbar { border-bottom: 1px solid var(--rule); background: var(--paper); }
+.rv-subbar .sc-subbar-inner { max-width: 1180px; margin: 0 auto; padding: 0 32px; display: flex; align-items: center; }
