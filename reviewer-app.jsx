@@ -201,6 +201,21 @@ function Console({ session, logout }) {
   }, [view.name, view.id]);
   const totalUnread = Object.values(unread).reduce((a, b) => a + b, 0);
 
+  /* Studies sent straight from a clinic machine that nobody has placed yet.
+     They can belong to a remote-read case, so the count belongs here too. */
+  const [imagingWaiting, setImagingWaiting] = rUseState(0);
+  rUseEffect(() => {
+    const Cloud = window.SchedCloud;
+    if (!Cloud || !Cloud.configured || !Cloud.loadUnroutedStudies) return;
+    let dead = false;
+    const tick = () => Cloud.loadUnroutedStudies()
+      .then(list => { if (!dead) setImagingWaiting((list || []).length); })
+      .catch(() => {});
+    tick();
+    const t = setInterval(tick, 120000);
+    return () => { dead = true; clearInterval(t); };
+  }, []);
+
   return (
     <div className="rv-page">
       <DragonflyField />
@@ -211,6 +226,7 @@ function Console({ session, logout }) {
         unread={totalUnread}
         onInbox={goInbox}
         onApps={goApps}
+        imagingWaiting={imagingWaiting}
       />
       {view.name === 'inbox' && <Inbox session={session} onOpenCase={goCase} unread={unread} />}
       {view.name === 'case' && <window.CaseReviewView id={view.id} onBack={goInbox} session={session} allCases={allCases} onBillingChange={reloadCases} />}
@@ -219,18 +235,15 @@ function Console({ session, logout }) {
   );
 }
 
-function ReviewerBar({ session, logout, view, unread, onInbox, onApps }) {
+function ReviewerBar({ session, logout, view, unread, onInbox, onApps, imagingWaiting }) {
   return (
     <React.Fragment>
-      <window.StaffBar active="remote" who={session.name} role={session.role} />
-      <div className="rv-subbar">
-        <div className="sc-subbar-inner">
-          <div className="sc-seg">
-            <button className={view === 'inbox' ? 'active' : ''} onClick={onInbox}>Case inbox<window.UnreadBadge n={unread} label={`${unread || 0} case${unread === 1 ? '' : 's'} with new vet messages`} /></button>
-            <button className={view === 'apps' ? 'active' : ''} onClick={onApps}>Vet applications</button>
-          </div>
-        </div>
-      </div>
+      <window.StaffBar active="remote" who={session.name} role={session.role} imagingWaiting={imagingWaiting} />
+      <window.SubBar
+        items={[{ key: 'inbox', label: 'Case inbox' }, { key: 'apps', label: 'Vet applications' }]}
+        active={view}
+        onNav={(k) => { (k === 'inbox' ? onInbox : onApps)(); return true; }}
+      />
     </React.Fragment>
   );
 }

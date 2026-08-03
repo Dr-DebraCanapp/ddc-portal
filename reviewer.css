@@ -1012,6 +1012,31 @@
 .vc-empty { padding: 28px 0; font-size: 13.5px; color: var(--ink-3); }
 
 
-/* ---- reviewer sub-bar (matches Schedule's) ---- */
-.rv-subbar { border-bottom: 1px solid var(--rule); background: var(--paper); }
-.rv-subbar .sc-subbar-inner { max-width: 1180px; margin: 0 auto; padding: 0 32px; display: flex; align-items: center; }
+
+/* ---- clinic patient ID on a remote-read case ---- */
+.rv-studycode { margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--rule); }
+.rv-studycode-row { display: flex; gap: 8px; align-items: center; margin-top: 8px; }
+.rv-studycode-row .form-input { max-width: 200px; }
+.rv-studycode-help { font-size: 11.5px; line-height: 1.55; color: var(--ink-3); margin: 8px 0 0; max-width: 52ch; }
+
+/* ---- shared second row (matches Schedule) ---- */
+.sc-subbar { border-bottom: 1px solid var(--rule); background: var(--paper); }
+.sc-subbar-inner { max-width: 1480px; margin: 0 auto; padding: 12px 32px; display: flex; align-items: center; gap: 20px; flex-wrap: wrap; }
+.sc-subbar-spacer { flex: 1 1 auto; }
+.sc-tab-badge { font-size: 10px; font-weight: 600; background: var(--clay); color: #fff; border-radius: 9px; padding: 1px 6px; }
+.sc-seg {
+  display: inline-flex; border: 1px solid var(--rule-2); background: var(--paper);
+}
+.sc-seg button, .sc-seg a {
+  background: transparent; color: var(--ink-3);
+  border: none; border-right: 1px solid var(--rule-2);
+  padding: 9px 16px; cursor: pointer; white-space: nowrap; text-decoration: none;
+  font-family: var(--sans); font-size: 12px; letter-spacing: 0.04em; font-weight: 500;
+  display: inline-flex; align-items: center; gap: 8px;
+  transition: background 0.15s, color 0.15s;
+}
+.sc-seg button:last-child, .sc-seg a:last-child { border-right: none; }
+.sc-seg button:hover, .sc-seg a:hover { background: var(--cream); color: var(--ink); }
+.sc-seg button.active, .sc-seg a.active { background: var(--ink); color: var(--paper); }
+.sc-seg button .dr, .sc-seg a .dr { font-family: var(--serif); font-size: 15px; line-height: 1; }
+.sc-seg button.active .dr, .sc-seg a.active .dr { color: var(--tan); }

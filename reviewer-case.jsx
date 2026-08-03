@@ -103,6 +103,7 @@ function CaseReviewView({ id, onBack, session, allCases, onBillingChange }) {
         <div className="rv-case-left">
           <RefVetBlock c={c} />
           <ClinicalBlock c={c} />
+          <CaseStudyCode c={c} />
 
           <div className="rv-attach-head">
             <div className="rv-section-eyebrow">Attachments</div>
@@ -229,6 +230,43 @@ function RefVetBlock({ c }) {
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+/* ============================================================
+   CLINIC PATIENT ID — so a study sent from their machine lands here
+   ============================================================ */
+function CaseStudyCode({ c }) {
+  const [code, setCode] = rcUseState(c.studyCode || '');
+  const [saved, setSaved] = rcUseState(false);
+  const [busy, setBusy] = rcUseState(false);
+  rcUseEffect(() => { setCode(c.studyCode || ''); }, [c.id, c.studyCode]);
+  if (!window.PortalDB || !window.PortalDB.setCaseStudyCode) return null;
+  const save = async () => {
+    setBusy(true);
+    try {
+      await window.PortalDB.setCaseStudyCode(c.id, code.trim());
+      setSaved(true); setTimeout(() => setSaved(false), 2200);
+    } catch (e) { alert(e.message || String(e)); }
+    setBusy(false);
+  };
+  return (
+    <div className="rv-studycode">
+      <div className="rv-section-eyebrow">Clinic patient ID</div>
+      <div className="rv-studycode-row">
+        <input className="form-input mono" value={code} maxLength={32}
+          onChange={e => setCode(e.target.value)}
+          placeholder="as it reads in their system" />
+        <button className="btn btn-ghost btn-sm" onClick={save} disabled={busy || code === (c.studyCode || '')}>
+          {busy ? 'Saving…' : saved ? 'Saved' : 'Save'}
+        </button>
+      </div>
+      <p className="rv-studycode-help">
+        Only needed if this practice sends images straight from their ultrasound or radiology unit.
+        Their machine sends this as the Accession Number, and the study files onto this case by itself.
+        Cases uploaded through the portal don’t need it.
+      </p>
     </div>
   );
 }

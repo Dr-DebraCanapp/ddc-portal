@@ -18,19 +18,19 @@
 .sc-seg {
   display: inline-flex; border: 1px solid var(--rule-2); background: var(--paper);
 }
-.sc-seg button {
+.sc-seg button, .sc-seg a {
   background: transparent; color: var(--ink-3);
   border: none; border-right: 1px solid var(--rule-2);
-  padding: 9px 16px; cursor: pointer; white-space: nowrap;
+  padding: 9px 16px; cursor: pointer; white-space: nowrap; text-decoration: none;
   font-family: var(--sans); font-size: 12px; letter-spacing: 0.04em; font-weight: 500;
   display: inline-flex; align-items: center; gap: 8px;
   transition: background 0.15s, color 0.15s;
 }
-.sc-seg button:last-child { border-right: none; }
-.sc-seg button:hover { background: var(--cream); color: var(--ink); }
-.sc-seg button.active { background: var(--ink); color: var(--paper); }
-.sc-seg button .dr { font-family: var(--serif); font-size: 15px; line-height: 1; }
-.sc-seg button.active .dr { color: var(--tan); }
+.sc-seg button:last-child, .sc-seg a:last-child { border-right: none; }
+.sc-seg button:hover, .sc-seg a:hover { background: var(--cream); color: var(--ink); }
+.sc-seg button.active, .sc-seg a.active { background: var(--ink); color: var(--paper); }
+.sc-seg button .dr, .sc-seg a .dr { font-family: var(--serif); font-size: 15px; line-height: 1; }
+.sc-seg button.active .dr, .sc-seg a.active .dr { color: var(--tan); }
 
 .sc-subbar-spacer { flex: 1 1 auto; }
 .rv-logout { white-space: nowrap; }

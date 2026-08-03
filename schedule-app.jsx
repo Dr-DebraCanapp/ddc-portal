@@ -50,22 +50,23 @@ function Toast({ msg }) {
 /* ---- top bar ----------------------------------------------- */
 /* The shared staff bar (staff-nav.jsx). Billing and Alerts live in this
    app, so those two are handled in place rather than reloading. */
-function SchedBar({ profile, tab, onTab, role }) {
+function SchedBar({ profile, tab, onTab, role, imagingWaiting }) {
   const isHospital = profile && profile.role === 'hospital';
   const isAdmin = role ? role === 'admin' : !isHospital;
-  const active = tab === 'billing' ? 'billing' : tab === 'alerts' ? 'alerts' : 'schedule';
+  const active = ['billing', 'alerts', 'imaging'].includes(tab) ? tab : 'schedule';
   const onNav = (key) => {
     if (!onTab) return false;
     if (key === 'schedule') { onTab('calendar'); return true; }
-    if ((key === 'billing' || key === 'alerts') && isAdmin) { onTab(key); return true; }
+    if (['billing', 'alerts', 'imaging'].includes(key) && isAdmin) { onTab(key); return true; }
     return false;
   };
   return (
     <window.StaffBar
       active={active}
       who={profile ? (profile.name || profile.email) : '—'}
-      role={isHospital ? 'Hospital account' : (profile && profile.role === 'reviewer' ? 'Reviewing Veterinarian' : 'Practice Administrator')}
+      role={profile && profile.role}
       hospital={isHospital}
+      imagingWaiting={imagingWaiting}
       onNav={onNav}
     />
   );
@@ -238,9 +239,9 @@ function ScheduleApp({ profile, boot }) {
     return ['billing', 'alerts', 'imaging', 'clinics', 'calendar'].includes(h) ? h : 'calendar';
   });
   const [cur, setCur] = useState([Sx.TODAY.getFullYear(), Sx.TODAY.getMonth()]);
-  // Billing and Alerts are their own sections: no Schedule sub-bar, no
-  // "What's Next?" hero above them.
-  const inSchedule = !['billing', 'alerts'].includes(tab);
+  // Billing, Alerts and Imaging are their own sections: no Schedule sub-bar,
+  // no "What's Next?" hero above them.
+  const inSchedule = !['billing', 'alerts', 'imaging'].includes(tab);
 
   useEffect(() => {
     // An admin-only tab must not survive a switch to clinic preview, or a
@@ -542,27 +543,24 @@ function ScheduleApp({ profile, boot }) {
   return (
     <div className="rv-page">
       <SchedDragonflyField />
-      <SchedBar profile={profile} tab={tab} onTab={setTab} role={role} />
+      <SchedBar profile={profile} tab={tab} onTab={setTab} role={role} imagingWaiting={imagingUnrouted} />
 
-      {/* sub bar — only for Schedule's own views. Billing and Alerts are
-         separate sections in the top bar and own their whole page. */}
+      {/* second row — Schedule's own views. Billing, Alerts and Imaging are
+         separate sections and own their whole page. */}
       {inSchedule && (
-      <div className="sc-subbar">
-        <div className="sc-subbar-inner">
-          <div className="sc-seg">
-            <button className={tab === 'calendar' ? 'active' : ''} onClick={() => setTab('calendar')}>Calendar</button>
-            {!isHospital && <button className={tab === 'clinics' ? 'active' : ''} onClick={() => setTab('clinics')}>Clinics</button>}
-            {isHospital && <button className={tab === 'account' ? 'active' : ''} onClick={() => setTab('account')}>Account</button>}
-            {role === 'admin' && <button className={tab === 'imaging' ? 'active' : ''} onClick={() => setTab('imaging')}>Imaging {imagingUnrouted > 0 && <span className="sc-tab-badge">{imagingUnrouted}</span>}</button>}
-          </div>
-          <div className="sc-subbar-spacer" />
-          {!isHospital && (
-            <React.Fragment>
-            </React.Fragment>
-          )}
-        </div>
-      </div>
+        <window.SubBar
+          items={isHospital
+            ? [{ key: 'calendar', label: 'Calendar', href: 'Schedule.html' }, { key: 'account', label: 'Account' }]
+            : window.SCHED_SUBNAV}
+          active={tab}
+          onNav={(key) => {
+            if (key === 'visits') return false;   // a real page
+            setTab(key); return true;
+          }}
+        />
       )}
+
+      {/* sub bar removed — SubBar above is the single source */}
 
       <main className="rv-main">
         {/* header — Schedule's own; Billing and Alerts write their own */}

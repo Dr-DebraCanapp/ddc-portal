@@ -70,6 +70,7 @@
       examFindings: r.exam_findings,
       priorImaging: r.prior_imaging,
       submittedBy: r.submitted_by,
+      studyCode: r.study_code || '',
       referringVet: r.referring_vet,
       referringClinic: r.referring_clinic,
       referringEmail: r.referring_email,
@@ -410,6 +411,13 @@
   /* ============================================================
      REPORTS + TIMELINE
      ============================================================ */
+  /* The clinic's own patient ID, so a study sent straight from their machine
+     can land on this case. Matched on the normalized form in the database. */
+  async function setCaseStudyCode(caseId, code) {
+    const { error } = await sb.from('cases').update({ study_code: code || null }).eq('id', caseId);
+    if (error) throw new Error(error.message);
+  }
+
   /* What a finalized read costs, for the practice's monthly statement. */
   async function setCaseBilling(caseId, billing) {
     const { error } = await sb.from('cases').update({
@@ -565,7 +573,7 @@
     // accounts (advisory in cloud mode)
     getAccounts, saveAccounts, addAccount,
     // reports + timeline
-    saveReport, setCaseBilling, advanceTimeline, nowLabel,
+    saveReport, setCaseBilling, setCaseStudyCode, advanceTimeline, nowLabel,
     // comments
     getComments, addComment, getAllComments,
     // referring-vet directory

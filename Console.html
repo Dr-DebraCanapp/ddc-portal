@@ -88,7 +88,7 @@
         <window.StaffBar
           active="home"
           who={profile ? (profile.name || profile.email) : '—'}
-          role={profile && profile.role === 'reviewer' ? 'Reviewing Veterinarian' : 'Practice Administrator'}
+          role={profile && profile.role}
         />
       );
     }
