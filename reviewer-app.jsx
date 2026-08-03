@@ -235,6 +235,7 @@ function ReviewerBar({ session, logout, view, unread, onInbox, onApps }) {
           <a className="rv-nav-link" href="Console.html" title="Everything in one place — remote reads + in-person" style={{ textDecoration: 'none' }}>⌂ Console</a>
           <button className={view === 'inbox' ? 'active' : ''} onClick={onInbox}>Case inbox<window.UnreadBadge n={unread} label={`${unread || 0} case${unread === 1 ? '' : 's'} with new vet messages`} /></button>
           <button className={view === 'apps' ? 'active' : ''} onClick={onApps}>Applications</button>
+          <a className="rv-nav-link" href="Schedule.html#billing" title="Invoices and statements — remote reads and in-person" style={{ textDecoration: 'none' }}>Billing</a>
           <a className="rv-nav-link muted" href="Schedule.html" title="In-person scheduling (clinical days)" style={{ textDecoration: 'none' }}>In-person ↗</a>
         </nav>
 

@@ -62,7 +62,7 @@
 
     function Meta({ label, children }) { return <div className="rv-meta-cell"><div className="rv-meta-label">{label}</div><div className="rv-meta-val">{children}</div></div>; }
 
-    function ReqCard({ r, onApprove, onDecline }) {
+    function ReqCard({ r, setup, onApprove, onDecline }) {
       return (
         <article className={`rv-app-card status-${r.status}`}>
           <div className="rv-app-main">
@@ -84,7 +84,19 @@
             {r.notes && <div className="rv-app-why"><div className="rv-section-eyebrow">Notes from the clinic</div><p>{r.notes}</p></div>}
             {r.status === 'approved' && (
               <div className="rv-app-approved">
-                <strong>Approved &amp; set up as a hospital account.</strong> Finalize their color, bookable weekdays, and case cap under Schedule → Clinics, then publish an open day for them.
+                {!setup ? (
+                  <React.Fragment><strong>Approved.</strong> Checking their clinic profile…</React.Fragment>
+                ) : setup.missing.length === 0 ? (
+                  <React.Fragment>
+                    <strong>Set up and live.</strong> Colour, bookable weekdays and case cap are all set, and
+                    {setup.upcoming === 1 ? ' one day is' : ` ${setup.upcoming} days are`} on the calendar for them.
+                  </React.Fragment>
+                ) : (
+                  <React.Fragment>
+                    <strong>Approved — {setup.missing.length} thing{setup.missing.length === 1 ? '' : 's'} left.</strong>{' '}
+                    {setup.missing.join(', ')}. Finish under <a href="Schedule.html#clinics">Schedule → Clinics</a>.
+                  </React.Fragment>
+                )}
               </div>
             )}
           </div>
@@ -183,7 +195,7 @@
               <div className="ax-cred"><div className="k">Email</div><div className="mono">{loginEmail}</div></div>
               <div className="ax-cred"><div className="k">Temporary password</div><div className="mono">{pw}</div></div>
               <details className="ax-preview"><summary>What the welcome email says</summary><pre>{welcomeBody}</pre></details>
-              <p className="rv-modal-body">Then finalize their profile (color, bookable weekdays, case cap) under <strong>Schedule → Clinics</strong> and publish an open day held for them.</p>
+              <p className="rv-modal-body">Then check their profile (colour, bookable weekdays, case cap) under <strong>Schedule → Clinics</strong> and publish an open day held for them. This card will tell you what is still outstanding.</p>
               <div className="rv-modal-actions">
                 <button className="btn btn-ghost" onClick={onClose}>Done</button>
                 <a className="btn btn-ghost" href="Schedule.html">Go to Schedule →</a>
@@ -235,6 +247,7 @@
       const [profile, setProfile] = useState(null);
       const [filter, setFilter] = useState('pending');
       const [approveModal, setApproveModal] = useState(null);
+      const [setups, setSetups] = useState({});   // clinic id → what's still outstanding
 
       const load = async () => {
         try {
@@ -248,6 +261,7 @@
           const { data, error } = await Cloud.client.from('sched_visit_requests').select('*').order('submitted_at', { ascending: false });
           if (error) throw new Error(error.message);
           setReqs(data.map(reqFromRow)); setPhase('ready');
+          loadSetups(data.map(reqFromRow));
         } catch (ex) { setErr(ex.message || String(ex)); setPhase('error'); }
       };
       useEffect(() => {
@@ -258,6 +272,33 @@
           load();
         })();
       }, []);
+
+      /* What is actually still outstanding on each approved clinic — read from
+         the clinic row and the calendar, not assumed. */
+      const loadSetups = async (list) => {
+        const ids = list.filter(r => r.status === 'approved' && r.clinicId).map(r => r.clinicId);
+        if (!ids.length) return;
+        const sb = Cloud.client;
+        const today = new Date().toISOString().slice(0, 10);
+        const [cRes, dRes] = await Promise.all([
+          sb.from('sched_clinics').select('id, color, booking_days, max_cases_per_day, status').in('id', ids),
+          sb.from('sched_days').select('clinic_id').in('clinic_id', ids).gte('date', today),
+        ]);
+        if (cRes.error) return;
+        const dayCount = {};
+        (dRes.data || []).forEach(d => { dayCount[d.clinic_id] = (dayCount[d.clinic_id] || 0) + 1; });
+        const out = {};
+        (cRes.data || []).forEach(c => {
+          const missing = [];
+          if (!c.color) missing.push('no colour assigned');
+          if (!c.booking_days || !c.booking_days.length) missing.push('no bookable weekdays');
+          if (!c.max_cases_per_day) missing.push('no case cap');
+          if (c.status !== 'active') missing.push('profile still marked pending');
+          if (!dayCount[c.id]) missing.push('no upcoming day published');
+          out[c.id] = { missing, upcoming: dayCount[c.id] || 0 };
+        });
+        setSetups(out);
+      };
 
       const counts = { pending: reqs.filter(a => a.status === 'pending').length, approved: reqs.filter(a => a.status === 'approved').length, declined: reqs.filter(a => a.status === 'declined').length };
       const filtered = reqs.filter(a => filter === 'all' ? true : a.status === filter);
@@ -290,7 +331,7 @@
             {filtered.length === 0 ? (
               <div className="rv-empty"><div className="rv-empty-h">No requests</div><p>{filter === 'pending' ? "You're all caught up. New requests from the intake form land here." : 'Nothing in this category yet.'}</p></div>
             ) : (
-              <div className="rv-app-list">{filtered.map(r => <ReqCard key={r.id} r={r} onApprove={() => setApproveModal(r)} onDecline={() => decline(r)} />)}</div>
+              <div className="rv-app-list">{filtered.map(r => <ReqCard key={r.id} r={r} setup={r.clinicId ? setups[r.clinicId] : null} onApprove={() => setApproveModal(r)} onDecline={() => decline(r)} />)}</div>
             )}
           </main>
           {approveModal && <ApproveModal r={approveModal} onClose={() => { setApproveModal(null); }} onDone={load} />}

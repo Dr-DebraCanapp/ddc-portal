@@ -48,8 +48,12 @@ function Toast({ msg }) {
 }
 
 /* ---- top bar ----------------------------------------------- */
-function SchedBar({ profile }) {
+function SchedBar({ profile, tab, onTab, role }) {
   const isHospital = profile && profile.role === 'hospital';
+  // Match how the rest of the app decides — the internal role, which also
+  // respects the admin's preview-as-clinic toggle.
+  const isAdmin = role ? role === 'admin' : !isHospital;
+  const go = (t) => (e) => { if (onTab) { e.preventDefault(); onTab(t); } };
   return (
     <header className="rv-bar">
       <div className="rv-bar-inner">
@@ -62,7 +66,9 @@ function SchedBar({ profile }) {
         </a>
         <nav className="rv-nav">
           {!isHospital && <a href="Console.html" className="rv-nav-link" title="Everything in one place — remote reads + in-person">⌂ Console</a>}
-          <a href="Schedule.html" className="rv-nav-link active">Schedule</a>
+          <a href="Schedule.html" className={`rv-nav-link ${!tab || (tab !== 'billing' && tab !== 'alerts') ? 'active' : ''}`} onClick={go('calendar')}>Schedule</a>
+          {isAdmin && <a href="Schedule.html" className={`rv-nav-link ${tab === 'billing' ? 'active' : ''}`} onClick={go('billing')} title="Invoices and statements — in-person and remote reads">Billing</a>}
+          {isAdmin && <a href="Schedule.html" className={`rv-nav-link ${tab === 'alerts' ? 'active' : ''}`} onClick={go('alerts')} title="Who gets texted when something needs a human">Alerts</a>}
           {!isHospital && <a href="Applications.html" className="rv-nav-link">Visit requests</a>}
           {!isHospital && <a href="reviewer.html" className="rv-nav-link muted" title="Remote-read referral portal (separate system)">Remote reads ↗</a>}
         </nav>
@@ -239,8 +245,26 @@ function ScheduleApp({ profile, boot }) {
   const [stmts, setStmts] = useState(boot.statements || {});      // statement id → invoice
   const [manual, setManual] = useState(boot.manualReads || {});   // statement id → historical reads
   const [ledgerView, setLedgerView] = useState('month');
-  const [tab, setTab] = useState('calendar');
+  const [tab, setTab] = useState(() => {
+    // Lets the remote-read console link straight here, e.g. Schedule.html#billing
+    const h = (window.location.hash || '').replace('#', '');
+    return ['billing', 'alerts', 'imaging', 'clinics', 'calendar'].includes(h) ? h : 'calendar';
+  });
   const [cur, setCur] = useState([Sx.TODAY.getFullYear(), Sx.TODAY.getMonth()]);
+  useEffect(() => {
+    // An admin-only tab must not survive a switch to clinic preview, or a
+    // stale #billing bookmark opened by a hospital account — either leaves a
+    // blank page.
+    if (role !== 'admin' && ['billing', 'alerts', 'imaging'].includes(tab)) setTab('calendar');
+    if (isHospital && tab === 'clinics') setTab('calendar');
+  }, [role, tab, isHospital]);
+
+  useEffect(() => {
+    const want = tab === 'calendar' ? '' : '#' + tab;
+    if ((window.location.hash || '') !== want) {
+      history.replaceState(null, '', window.location.pathname + window.location.search + want);
+    }
+  }, [tab]);
   const [anchor, setAnchor] = useState(new Date(Sx.TODAY));
   const [selId, setSelId] = useState(null);
   const [modal, setModal] = useState(null);
@@ -527,7 +551,7 @@ function ScheduleApp({ profile, boot }) {
   return (
     <div className="rv-page">
       <SchedDragonflyField />
-      <SchedBar profile={profile} />
+      <SchedBar profile={profile} tab={tab} onTab={setTab} role={role} />
 
       {/* sub bar */}
       <div className="sc-subbar">
@@ -536,7 +560,6 @@ function ScheduleApp({ profile, boot }) {
             <button className={tab === 'calendar' ? 'active' : ''} onClick={() => setTab('calendar')}>Calendar</button>
             {!isHospital && <button className={tab === 'clinics' ? 'active' : ''} onClick={() => setTab('clinics')}>Clinics</button>}
             {isHospital && <button className={tab === 'account' ? 'active' : ''} onClick={() => setTab('account')}>Account</button>}
-            {role === 'admin' && <button className={tab === 'billing' ? 'active' : ''} onClick={() => setTab('billing')}>Billing</button>}
             {role === 'admin' && <button className={tab === 'imaging' ? 'active' : ''} onClick={() => setTab('imaging')}>Imaging {imagingUnrouted > 0 && <span className="sc-tab-badge">{imagingUnrouted}</span>}</button>}
           </div>
           <div className="sc-subbar-spacer" />
@@ -684,6 +707,9 @@ function ScheduleApp({ profile, boot }) {
         {tab === 'clinics' && !isHospital && <ClinicsView days={days} role={role} clinicId={clinicId} rev={clinicRev} onEdit={on.editClinic} flash={flash} entities={entities} accounts={accounts} on={on} />}
         {tab === 'billing' && role === 'admin' && <window.BillingView entities={entities} accounts={accounts} on={on} onOpenEntity={(e) => e.kind === 'inperson' && openDay(e.source || e)} onEditRates={() => setModal({ type: 'rates' })} onAddPast={() => setModal({ type: 'backdate' })} />}
         {tab === 'imaging' && role === 'admin' && <ImagingView incoming={incoming} setIncoming={setIncoming} days={days} flash={flash} oops={oops} />}
+        {tab === 'alerts' && role === 'admin' && (window.NotifyPanel
+          ? <window.NotifyPanel flash={flash} oops={oops} />
+          : <p className="rv-sub">Alerts panel unavailable.</p>)}
       </main>
 
       {/* drawer */}
@@ -941,7 +967,6 @@ function ImagingView({ incoming, setIncoming, days, flash, oops }) {
                 <p className="rv-sub">Device registry unavailable.</p>
               </React.Fragment>
             )}
-          {window.NotifyPanel && <window.NotifyPanel flash={flash} oops={oops} />}
         </React.Fragment>
       )}
     </React.Fragment>
