@@ -506,6 +506,26 @@
       return () => sb.removeChannel(ch);
     },
 
+    /* ---- admin: hospital sign-in accounts ----
+       The clinic's status says nothing about whether a login is actually
+       attached, so ask rather than infer. */
+    async hospitalAccounts(clinicId) {
+      const { data, error } = await sb.from('sched_hospital_accounts')
+        .select('id,email,name').eq('sched_clinic_id', clinicId);
+      if (error) fail(error, 'Could not check the hospital account');
+      return data || [];
+    },
+    async linkHospitalAccount(email, clinicId) {
+      const { data, error } = await sb.rpc('sched_link_hospital_account', { p_email: email, p_clinic_id: clinicId });
+      if (error) throw new Error(error.message);
+      return data;
+    },
+    async unlinkHospitalAccount(email) {
+      const { data, error } = await sb.rpc('sched_unlink_hospital_account', { p_email: email });
+      if (error) throw new Error(error.message);
+      return data;
+    },
+
     /* ---- admin: create a hospital login (secondary client, keeps admin session) ---- */
     async createHospitalAccount({ email, password, name, clinicId }) {
       return SchedCloud.createUserAccount({ email, password, name, role: 'hospital', extra: { sched_clinic_id: clinicId } });

@@ -978,6 +978,8 @@ function ClinicProfileModal({ clinic, onSave, onClose }) {
           </div>
         </details>
 
+        <window.ClinicAccountLink clinic={clinic} />
+
         <div className="sc-modal-actions">
           <button className="btn btn-ghost" onClick={onClose}>Cancel</button>
           <button className="btn btn-clay" disabled={!valid} onClick={() => {
