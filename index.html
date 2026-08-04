@@ -23,6 +23,12 @@
   <script src="config.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.0/dist/umd/supabase.min.js"></script>
 
+  <!-- pdf.js — lets the AI intake read a referral letter PDF -->
+  <script src="https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
+  <script>
+    if (window.pdfjsLib) { window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.worker.min.js'; }
+  </script>
+
   <!-- App -->
   <script type="text/babel" src="tweaks-panel.jsx"></script>
   <script type="text/babel" src="shared.jsx"></script>
@@ -39,6 +45,8 @@
   <script type="text/babel" src="schedule-rates.jsx"></script>
   <script type="text/babel" src="portal-fees.jsx"></script>
   <script type="text/babel" src="portal-billing.jsx"></script>
+  <script type="text/babel" src="portal-ai-intake.jsx"></script>
+  <script type="text/babel" src="password-reset.jsx"></script>
   <script type="text/babel" src="portal-views.jsx"></script>
   <script type="text/babel" src="portal.jsx"></script>
 </body>

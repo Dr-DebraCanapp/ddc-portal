@@ -169,6 +169,17 @@
     // on the page so the notice explaining where to go remains on screen.
     async signOut(reload = true) { await sb.auth.signOut({ scope: 'local' }); if (reload) window.location.reload(); },
 
+    /* Password reset — shared with the portal; the link lands on
+       Reset Password.html whichever door they started from. */
+    async resetPassword(email, redirectTo) {
+      const { error } = await sb.auth.resetPasswordForEmail(email, redirectTo ? { redirectTo } : undefined);
+      return error ? { error: error.message } : {};
+    },
+    async updatePassword(password) {
+      const { error } = await sb.auth.updateUser({ password });
+      return error ? { error: error.message } : {};
+    },
+
     /* ---- loading ---- */
     async loadAll(isAdmin) {
       const [clinics, days, patients, incoming] = await Promise.all([

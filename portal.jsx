@@ -124,10 +124,70 @@ function NewCaseView({ session, onSubmit, onCancel }) {
     complaint: '', duration: '', priorImaging: '', medications: '', examFindings: '', rush: false,
   });
   const [sites, setSites] = pAppUseState([]);
+
+  /* AI intake writes into the form only on the vet's say-so, and never over
+     something they typed themselves. Returns the labels it actually used. */
+  const PAI_SITE_MAP = {
+    shoulder: 'Shoulders', elbow: 'Elbows', carpus: 'Carpi', stifle: 'Stifles',
+    tarsus: 'Tarsi / Hocks', achilles: 'Achilles / Common calcanean',
+    iliopsoas: 'Iliopsoas', piriformis: 'Piriformis',
+  };
+  const applyAI = (f) => {
+    const used = [];
+    const L = window.PAI_LABELS || {};
+    const patch = {};
+    // 'history' lands in the history-notes field the form already has
+    const map = { patient: 'patient', species: 'species', breed: 'breed', age: 'age', sex: 'sex',
+      weight: 'weight', complaint: 'complaint', duration: 'duration', medications: 'medications',
+      examFindings: 'examFindings', history: 'priorImaging' };
+    Object.entries(map).forEach(([from, to]) => {
+      const v = f[from];
+      if (!v) return;
+      const existing = String(data[to] || '').trim();
+      // species defaults to Canine, so treat that as unset rather than a choice
+      if (existing && !(to === 'species' && existing === 'Canine')) return;
+      patch[to] = v;
+      used.push(L[from] || from);
+    });
+    if (Object.keys(patch).length) setData(d => ({ ...d, ...patch }));
+
+    const wanted = (f.sites || []).map(s => PAI_SITE_MAP[s]).filter(Boolean);
+    const added = wanted.filter(s => !sites.includes(s));
+    if (added.length) { setSites(prev => [...prev, ...added]); used.push('Sites (' + added.join(', ') + ')'); }
+    return used;
+  };
   const [dicom, setDicom] = pAppUseState([]);
   const [rads, setRads] = pAppUseState([]);
   const [videos, setVideos] = pAppUseState([]);
   const [docs, setDocs] = pAppUseState([]);
+
+  /* Files dropped on the AI panel are carried into the case's uploads, so
+     nobody attaches the same referral letter twice. Sorted by what they are:
+     the vet can move anything we put in the wrong pile. */
+  const attachAI = (files) => {
+    const mk = (f, kind) => ({
+      id: `${kind}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      name: f.name, size: f.size, type: f.type || '', kind,
+      preview: (f.type || '').startsWith('image/') ? URL.createObjectURL(f) : null,
+      blob: f,
+    });
+    const seen = (list, f) => list.some(x => x.name === f.name && x.size === f.size);
+    const toRads = [], toVideos = [], toDocs = [];
+    files.forEach(f => {
+      const n = (f.name || '').toLowerCase();
+      if (/\.(mp4|mov|avi|webm|m4v)$/.test(n)) { if (!seen(videos, f)) toVideos.push(mk(f, 'video')); }
+      else if (/\.(dcm|dicom|jpe?g|png|tiff?|gif|bmp)$/.test(n)) { if (!seen(rads, f) && !seen(dicom, f)) toRads.push(mk(f, 'rads')); }
+      else if (!seen(docs, f)) toDocs.push(mk(f, 'history'));
+    });
+    if (toRads.length) setRads(prev => [...prev, ...toRads]);
+    if (toVideos.length) setVideos(prev => [...prev, ...toVideos]);
+    if (toDocs.length) setDocs(prev => [...prev, ...toDocs]);
+    const parts = [];
+    if (toDocs.length) parts.push(`${toDocs.length} to History documents`);
+    if (toRads.length) parts.push(`${toRads.length} to Radiographs / MRI / CT`);
+    if (toVideos.length) parts.push(`${toVideos.length} to Patient videos`);
+    return parts;
+  };
   const [submitting, setSubmitting] = pAppUseState(false);
   const [progress, setProgress] = pAppUseState(null);
 
@@ -228,6 +288,9 @@ function NewCaseView({ session, onSubmit, onCancel }) {
           {step === 0 && (
             <div className="step-pane">
               <div className="step-head"><h3>Patient & history</h3><span className="num">{STEPS[0].n}</span></div>
+              {window.PortalAIIntake && (
+                <window.PortalAIIntake onApply={applyAI} onAttach={attachAI} sitesLabel={(s) => PAI_SITE_MAP[s] || s} />
+              )}
               <div className="form-row split">
                 <div><label className="form-label">Patient name<span className="req">*</span></label><input className="form-input" value={data.patient} onChange={set('patient')} /></div>
                 <div>

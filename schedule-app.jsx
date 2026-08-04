@@ -96,12 +96,14 @@ function SchedSignIn({ onSignedIn, denied, onDismiss }) {
   const [pw, setPw] = useState('');
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
+  const [forgot, setForgot] = useState(false);
   const go = async (e) => {
     e.preventDefault();
     setBusy(true); setErr('');
     try { await window.SchedCloud.signIn(email.trim(), pw); onSignedIn(); }
     catch (ex) { setErr(ex.message || 'Sign-in failed.'); setBusy(false); }
   };
+  if (forgot) return <window.ForgotPassword email={email} brand="scheduling" onBack={() => setForgot(false)} />;
   return (
     <div className="rv-page">
       <SchedDragonflyField />
@@ -140,6 +142,7 @@ function SchedSignIn({ onSignedIn, denied, onDismiss }) {
             <input className="form-input" type="password" required value={pw} onChange={e => setPw(e.target.value)} /></div>
           {err && <div style={{ color: '#c24444', fontSize: 13, marginTop: 12 }}>{err}</div>}
           <button className="btn btn-clay" type="submit" disabled={busy} style={{ width: '100%', marginTop: 18 }}>{busy ? 'Signing in…' : 'Sign in'}</button>
+          <div className="form-help" style={{ marginTop: 12, textAlign: 'center' }}><a href="#" onClick={(e) => { e.preventDefault(); setForgot(true); }}>Forgot your password?</a></div>
           <div className="form-help" style={{ marginTop: 12, textAlign: 'center' }}>No account? Hospitals are set up by our office after a <a href="ClinicIntake.html">visit request</a> is approved.</div>
         </form>
       </main>
@@ -188,7 +191,12 @@ function SchedGate() {
       // shared components look clinics up via SCHED.CLINICS — swap contents in place
       window.SCHED.CLINICS.length = 0;
       window.SCHED.CLINICS.push(...data.clinics);
-      setProfile(prof); setBoot(data); setPhase('ready');
+      setProfile(prof); setBoot(data);
+      // Supabase admits a password-only session at aal1; step it up here.
+      if (window.secNeedsChallenge && await window.secNeedsChallenge(window.SchedCloud.client)) {
+        setPhase('mfa'); return;
+      }
+      setPhase('ready');
     } catch (ex) {
       setErr(ex.message || String(ex)); setPhase('error');
     }
@@ -209,6 +217,7 @@ function SchedGate() {
   if (phase === 'config') return <SchedNotice title="Not configured.">Supabase keys are missing from <code>config.js</code>, or the client library failed to load. The scheduling system requires a live connection — see <strong>SCHED-SUPABASE-SETUP.md</strong>.</SchedNotice>;
   if (phase === 'error') return <SchedNotice title="Couldn't reach the cloud."><p style={{ color: '#c24444' }}>{err}</p><p>Check your connection and reload. Nothing was lost — the schedule lives in Supabase.</p></SchedNotice>;
   if (phase === 'signin') return <SchedSignIn onSignedIn={load} denied={denied} onDismiss={() => setDenied(null)} />;
+  if (phase === 'mfa') return <window.MfaChallenge onDone={() => setPhase('ready')} onCancel={() => window.SchedCloud.signOut()} />;
   return <ScheduleApp profile={profile} boot={boot} reload={load} />;
 }
 

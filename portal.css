@@ -1352,3 +1352,64 @@
 .tool-key { position: absolute; top: 3px; right: 4px; font-size: 8.5px; font-weight: 600; letter-spacing: 0.04em; opacity: 0.32; font-variant-numeric: tabular-nums; }
 .tool-btn.active .tool-key { opacity: 0.6; }
 .tool-btn:hover .tool-key { opacity: 0.55; }
+
+
+/* ---- AI intake (referring-vet submission) ---- */
+.pai { border: 1px solid var(--rule-2); background: var(--cream); margin-bottom: 28px; }
+.pai.open { background: var(--paper); }
+.pai-toggle { width: 100%; display: flex; align-items: flex-start; gap: 14px; background: none; border: none; padding: 16px 18px; text-align: left; cursor: pointer; font: inherit; }
+.pai-mark { color: var(--clay); font-size: 16px; line-height: 1.3; flex-shrink: 0; }
+.pai-toggle-t { display: flex; flex-direction: column; gap: 3px; flex: 1; }
+.pai-toggle-t b { font-size: 14px; font-weight: 500; }
+.pai-toggle-t em { font-size: 12.5px; font-style: normal; color: var(--ink-3); line-height: 1.5; }
+.pai-chev { color: var(--ink-3); font-size: 16px; flex-shrink: 0; }
+.pai-body { padding: 0 18px 18px; display: flex; flex-direction: column; gap: 14px; }
+.pai-drop { border: 1px dashed var(--rule-2); background: var(--cream); padding: 22px 20px; display: flex; flex-direction: column; gap: 5px; align-items: center; text-align: center; cursor: pointer; transition: border-color .15s, background .15s; }
+.pai-drop.over { border-color: var(--clay); background: var(--paper); }
+.pai-drop-t { font-size: 13.5px; }
+.pai-drop-s { font-size: 11.5px; color: var(--ink-3); line-height: 1.5; max-width: 58ch; }
+.pai-files { display: flex; flex-wrap: wrap; gap: 6px; }
+.pai-pill { display: inline-flex; align-items: center; gap: 7px; font-size: 12px; border: 1px solid var(--rule-2); background: var(--paper); padding: 4px 8px; }
+.pai-pill .k { font-size: 9.5px; letter-spacing: 0.08em; color: var(--ink-3); }
+.pai-pill .x { cursor: pointer; color: var(--ink-3); font-size: 14px; line-height: 1; }
+.pai-pill .x:hover { color: var(--clay); }
+.pai-acts { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.pai-note { font-size: 11.5px; color: var(--ink-3); }
+.pai-err { font-size: 12.5px; line-height: 1.55; color: var(--clay); border-left: 2px solid var(--clay); padding-left: 10px; }
+.pai-result { border-top: 1px solid var(--rule); padding-top: 14px; display: flex; flex-direction: column; gap: 12px; }
+.pai-summary { font-size: 13px; line-height: 1.6; color: var(--ink-2); margin: 0; }
+.pai-eyebrow { font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-3); margin-bottom: 6px; }
+.pai-row { display: grid; grid-template-columns: 150px 1fr; gap: 12px; padding: 5px 0; border-bottom: 1px solid var(--rule); font-size: 13px; align-items: baseline; }
+.pai-row:last-child { border-bottom: none; }
+.pai-k { font-size: 11px; letter-spacing: 0.06em; color: var(--ink-3); }
+.pai-v { white-space: pre-wrap; }
+.pai-flags { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 4px; }
+.pai-flags li { font-size: 12.5px; line-height: 1.5; color: var(--ink-2); }
+.pai-flags li.miss { color: var(--clay); }
+.pai-done { font-size: 12.5px; line-height: 1.55; background: var(--cream); border-left: 2px solid var(--clay); padding: 10px 12px; }
+@media (max-width: 640px) { .pai-row { grid-template-columns: 1fr; gap: 2px; } }
+
+
+/* ---- password reset ---- */
+.pw-shell { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 40px 24px; background: var(--cream); }
+.pw-card { width: 100%; max-width: 440px; background: var(--paper); border: 1px solid var(--rule-2); padding: 40px 38px 34px; }
+.pw-card .eb { font-size: 10.5px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--ink-3); margin-bottom: 14px; }
+.pw-card .h { font-family: var(--serif); font-size: 30px; font-weight: 400; letter-spacing: -0.02em; line-height: 1.12; margin: 0 0 14px; }
+.pw-card .body { font-size: 14px; line-height: 1.65; color: var(--ink-2); margin: 0 0 26px; }
+.pw-card form { display: flex; flex-direction: column; gap: 16px; }
+.pw-card .form-btn-primary, .pw-card .btn { width: 100%; justify-content: center; text-align: center; }
+.pw-card a.btn { text-decoration: none; }
+.pw-card .auth-alt { margin-top: 22px; font-size: 13px; text-align: center; }
+.pw-ok { color: var(--sage, #6B7C5C); }
+
+
+/* ---- top bar must never clip Sign out ---- */
+/* The bar is one nowrap flex row; nav is the part that can give way. */
+.rv-bar-inner { flex-wrap: wrap; row-gap: 10px; }
+.rv-nav { flex-wrap: wrap; min-width: 0; }
+.rv-who { flex-shrink: 0; }
+/* Modals mount outside the dark bar, but be explicit so no ancestor's
+   text colour can bleed into a light panel again. */
+.vc-panel, .pw-card { color: var(--ink); }
+.vc-panel .rv-drawer-close { color: var(--ink-3); }
+.vc-panel .rv-drawer-close:hover { color: var(--ink); }

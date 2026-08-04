@@ -73,6 +73,7 @@ const roleLabel = (r) => {
 };
 
 function StaffBar({ active, who, role, onNav, hospital, unread, imagingWaiting }) {
+  const [sec, setSec] = React.useState(false);
   const click = (item) => (e) => {
     if (!onNav) return;
     if (onNav(item.key) === true) e.preventDefault();
@@ -85,6 +86,7 @@ function StaffBar({ active, who, role, onNav, hospital, unread, imagingWaiting }
     window.location.href = 'Console.html';
   };
   return (
+    <React.Fragment>
     <header className="rv-bar">
       <div className="rv-bar-inner">
         <a href={hospital ? 'Schedule.html' : 'Console.html'} className="rv-brand" title="Practice console">
@@ -112,10 +114,15 @@ function StaffBar({ active, who, role, onNav, hospital, unread, imagingWaiting }
             <div className="rv-who-name">{who || 'Signed in'}</div>
             <div className="rv-who-role">{roleLabel(role)}</div>
           </div>
+          {!hospital && window.SecurityPanel && (
+            <button className="rv-logout" onClick={() => setSec(true)} title="Two-factor and password">Security</button>
+          )}
           <button className="rv-logout" onClick={logout}>Sign out</button>
         </div>
       </div>
     </header>
+    {sec && window.SecurityPanel && React.createElement(window.SecurityPanel, { who, onClose: () => setSec(false) })}
+    </React.Fragment>
   );
 }
 

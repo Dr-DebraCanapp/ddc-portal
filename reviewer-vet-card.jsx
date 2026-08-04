@@ -26,6 +26,7 @@ function VetCard({ vetKey, onClose }) {
   const [editing, setEditing] = rvcState(false);
   const [draft, setDraft] = rvcState({});
   const [saving, setSaving] = rvcState(false);
+  const [busy, setBusy] = rvcState(false);
 
   rvcEffect(() => {
     let dead = false;
@@ -59,6 +60,25 @@ function VetCard({ vetKey, onClose }) {
 
   const when = (d) => d ? new Date(d).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : '—';
 
+  /* Deactivate rather than delete: the case history has to survive. */
+  const toggleActive = async () => {
+    const off = vet.active !== false;
+    if (off) {
+      const note = prompt(`Lock ${vet.name || vet.email} out of the portal?\n\nTheir cases, reports and invoices are kept and stay visible to you. They will not be able to sign in or submit.\n\nReason (optional, for your records):`);
+      if (note === null) return;
+      setBusy(true);
+      try { setVet(await window.PortalDB.setVetActive(vet.id, false, note.trim() || null)); }
+      catch (e) { alert(e.message || String(e)); }
+      setBusy(false);
+    } else {
+      if (!confirm(`Give ${vet.name || vet.email} access again?`)) return;
+      setBusy(true);
+      try { setVet(await window.PortalDB.setVetActive(vet.id, true)); }
+      catch (e) { alert(e.message || String(e)); }
+      setBusy(false);
+    }
+  };
+
   return (
     <div className="vc-overlay" onClick={onClose}>
       <div className="vc-panel" onClick={e => e.stopPropagation()}>
@@ -72,8 +92,16 @@ function VetCard({ vetKey, onClose }) {
 
         {vet && (
           <React.Fragment>
-            <div className="vc-title">{vet.name || vet.email}</div>
+            <div className="vc-title">{vet.name || vet.email}{vet.active === false && <span className="vc-off">deactivated</span>}</div>
             <div className="vc-sub">{vet.clinic || 'Practice not recorded'}</div>
+
+            {vet.active === false && (
+              <div className="vc-offnote">
+                Locked out {vet.deactivated_at ? 'on ' + when(vet.deactivated_at) : ''}. Their cases,
+                reports and invoices are all still here.
+                {vet.deactivated_note ? <><br />{vet.deactivated_note}</> : null}
+              </div>
+            )}
 
             <div className="vc-stats">
               <div><span className="vc-n">{vet.case_count || 0}</span><span className="vc-k">cases</span></div>
@@ -143,6 +171,11 @@ function VetCard({ vetKey, onClose }) {
                 <React.Fragment>
                   <button className="btn btn-ghost btn-sm" onClick={() => setEditing(true)}>Correct details</button>
                   {vet.email && <a className="btn btn-ghost btn-sm" href={`mailto:${vet.email}`}>Email</a>}
+                  {window.PortalDB.setVetActive && (
+                    <button className="btn btn-ghost btn-sm vc-danger" onClick={toggleActive} disabled={busy}>
+                      {vet.active === false ? 'Restore access' : 'Deactivate'}
+                    </button>
+                  )}
                 </React.Fragment>
               )}
             </div>

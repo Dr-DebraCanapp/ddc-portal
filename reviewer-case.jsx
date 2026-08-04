@@ -437,19 +437,9 @@ function ReportBuilder({ c, session, onSaved, billingEntities, billingOn }) {
     onSaved && onSaved();
   };
 
-  const viewInvoice = () => {
-    if (!c.invoice) return;
-    const w = window.open('', '_blank', 'width=820,height=1000');
-    if (!w) return;
-    w.document.write(window.buildInvoiceHTML(c, c.invoice));
-    w.document.close();
-  };
-
-  const togglePaid = async () => {
-    const nowPaid = !(c.invoice && c.invoice.status === 'paid');
-    await window.PortalDB.setInvoicePaid(c.id, nowPaid);
-    onSaved && onSaved();
-  };
+  /* The per-case invoice view and paid toggle are gone: remote reads are
+     billed on the unified engine as a monthly statement per practice, which
+     CaseBillingBlock renders below. */
 
   const previewReport = () => {
     const w = window.open('', '_blank', 'width=820,height=1000');

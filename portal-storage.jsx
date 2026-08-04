@@ -467,6 +467,7 @@ window.PortalDB = {
   // Local mode has no account directory — the card says so rather than crashing.
   getVet: async () => null,
   updateVet: async () => { throw new Error('Vet details can only be edited when signed in to the live system.'); },
+  setVetActive: async () => { throw new Error('Accounts can only be changed when signed in to the live system.'); },
   saveInvoice, setInvoicePaid,
   ensureSession: async () => true,
   async uploadFiles(caseId, recs, onProgress) {

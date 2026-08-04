@@ -561,6 +561,17 @@
     return getVet({ id });
   }
 
+  /* Deactivation, not deletion — the cases and invoices have to stay. */
+  async function setVetActive(id, active, note) {
+    const { error } = await sb.from('profiles').update({
+      active: !!active,
+      deactivated_at: active ? null : new Date().toISOString(),
+      deactivated_note: active ? null : (note || null),
+    }).eq('id', id);
+    if (error) throw new Error(error.message);
+    return getVet({ id });
+  }
+
   window.PortalDB = {
     // cases
     putCase, getCase, getAllCases, deleteCase,
@@ -577,7 +588,7 @@
     // comments
     getComments, addComment, getAllComments,
     // referring-vet directory
-    getVet, updateVet,
+    getVet, updateVet, setVetActive,
     saveInvoice, setInvoicePaid,
     ensureSession, uploadFiles,
     // misc
@@ -610,6 +621,7 @@
       name: (profile && profile.name) || meta.name || user.email,
       clinic: (profile && profile.clinic) || meta.clinic || '',
       role: (profile && profile.role) || meta.role || 'vet',
+      active: !(profile && profile.active === false),
     };
   }
 
@@ -625,6 +637,10 @@
     // Use the user object signInWithPassword already returned — do NOT call
     // getSession() again here; that path can deadlock against the auth lock.
     const session = await buildSession(data.user);
+    if (session && session.active === false) {
+      await sb.auth.signOut({ scope: 'local' });
+      return { error: 'This account has been deactivated. Please contact the practice at info@drdebracanapp.com.' };
+    }
     return { session };
   }
   async function signOut() {
@@ -653,8 +669,19 @@
     });
   }
 
+  /* Password reset. The link lands on Reset Password.html, which finishes
+     the exchange and calls updateUser. */
+  async function resetPassword(email, redirectTo) {
+    const { error } = await sb.auth.resetPasswordForEmail(email, redirectTo ? { redirectTo } : undefined);
+    return error ? { error: error.message } : {};
+  }
+  async function updatePassword(password) {
+    const { error } = await sb.auth.updateUser({ password });
+    return error ? { error: error.message } : {};
+  }
+
   window.SupabaseAuth = {
     getSession: getSessionWithProfile,
-    signIn, signOut, signUpVet, onAuthChange,
+    signIn, signOut, signUpVet, onAuthChange, resetPassword, updatePassword,
   };
 })();

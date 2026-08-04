@@ -126,6 +126,7 @@ function LoginView({ onLogin, onApply }) {
   const [password, setPassword] = pUseState('');
   const [err, setErr] = pUseState(null);
   const [busy, setBusy] = pUseState(false);
+  const [forgot, setForgot] = pUseState(false);
   const submit = async (e) => {
     e.preventDefault();
     setBusy(true); setErr(null);
@@ -134,6 +135,7 @@ function LoginView({ onLogin, onApply }) {
     if (r && r.error) setErr(r.error);
   };
   const cloudMode = !!window.SupabaseAuth;
+  if (forgot) return <window.ForgotPassword email={email} onBack={() => setForgot(false)} />;
   return (
     <div className="auth-shell">
       <aside className="auth-aside">
@@ -181,6 +183,7 @@ function LoginView({ onLogin, onApply }) {
             </button>
           </form>
           <div className="auth-alt">
+            {cloudMode && <><a href="#" onClick={(e) => { e.preventDefault(); setForgot(true); }}>Forgot your password?</a><br /><br /></>}
             Need access? <a href="#" onClick={(e) => { e.preventDefault(); onApply(); }}>Apply for an account</a>
             <br /><br />
             <a href="https://drdebracanapp.com/" style={{color:'var(--ink-3)', borderBottom:'none', fontSize:12, letterSpacing:'0.16em', textTransform:'uppercase'}}>← Back to drdebracanapp.com</a>

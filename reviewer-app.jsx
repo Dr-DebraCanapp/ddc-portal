@@ -24,6 +24,17 @@ function saveAdminSession(s) {
 function AdminAuthGate({ children }) {
   const [session, setSession] = rUseState(null);
   const [ready, setReady] = rUseState(false);
+  /* undefined = still checking, 'needed' = ask for a code, 'ok' = through.
+     Supabase lets a password-only session in at aal1, so the step-up is
+     enforced here rather than assumed. */
+  const [mfa, setMfa] = rUseState('ok');
+  rUseEffect(() => {
+    if (!session || !window.secNeedsChallenge) return;
+    setMfa(undefined);
+    window.secNeedsChallenge(window.SchedCloud && window.SchedCloud.client)
+      .then(need => setMfa(need ? 'needed' : 'ok'))
+      .catch(() => setMfa('ok'));
+  }, [session && session.email]);
 
   rUseEffect(() => {
     let unsubscribe = null;
@@ -82,6 +93,8 @@ function AdminAuthGate({ children }) {
 
   if (!ready) return null;
   if (!session) return <AdminLogin onLogin={login} />;
+  if (mfa === 'needed') return <window.MfaChallenge onDone={() => setMfa('ok')} onCancel={logout} />;
+  if (mfa === undefined) return null;
   return children({ session, logout });
 }
 
@@ -99,6 +112,7 @@ function AdminLogin({ onLogin }) {
   const [password, setPassword] = rUseState('');
   const [err, setErr] = rUseState(null);
   const [denied, setDenied] = rUseState(false);
+  const [forgot, setForgot] = rUseState(false);
   const [busy, setBusy] = rUseState(false);
   const AX = window.AccessNotice;
   const submit = async (e) => {
@@ -111,6 +125,7 @@ function AdminLogin({ onLogin }) {
     if (r && r.error) setErr(r.error);
   };
   const cloudMode = !!window.SupabaseAuth;
+  if (forgot) return <window.ForgotPassword email={email} brand="the console" onBack={() => setForgot(false)} />;
   return (
     <div className="admin-login">
       <DragonflyField />
@@ -149,7 +164,7 @@ function AdminLogin({ onLogin }) {
               value={password} onChange={e => { setPassword(e.target.value); setErr(null); }}
               placeholder="••••••••" />
             <div className="form-help">{cloudMode
-              ? 'Reviewer accounts are managed in Supabase. Practice admins promote users via SQL — see SUPABASE_SETUP.md.'
+              ? 'Staff accounts are managed in Supabase.'
               : <>Demo · <code>debra@drdebracanapp.com</code> / <code>review</code> &nbsp;·&nbsp; <code>admin@drdebracanapp.com</code> / <code>admin</code></>
             }</div>
           </div>
@@ -157,6 +172,11 @@ function AdminLogin({ onLogin }) {
           <button type="submit" className="btn form-btn-primary" disabled={busy}>
             {busy ? 'Signing in…' : <>Sign in to console <span className="arrow">→</span></>}
           </button>
+          {cloudMode && (
+            <div className="form-help" style={{ marginTop: 14, textAlign: 'center' }}>
+              <a href="#" onClick={(e) => { e.preventDefault(); setForgot(true); }}>Forgot your password?</a>
+            </div>
+          )}
         </form>
 
         <div className="adm-foot">
