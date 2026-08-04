@@ -286,6 +286,7 @@ window.SCHED = {
   fmtSex: schedFmtSex, liveFlags: schedLiveFlags, occupations: SCHED_OCCUPATIONS,
   makeId: () => 'p' + (++_pid),
   buildInvoiceHTML: schedBuildInvoiceHTML,
+  buildInvoiceEmailHTML: schedBuildInvoiceEmailHTML,
   buildReceiptHTML: schedBuildReceiptHTML,
 };
 
@@ -443,6 +444,169 @@ function schedBuildInvoiceHTML(e) {
   ? 'This statement covers diagnostic musculoskeletal ultrasound studies submitted by the practice named above and read remotely by Dr. Canapp during the period shown. Each read covers one bilateral anatomical region unless otherwise noted. No tax applied.'
   : 'This invoice covers in-person diagnostic musculoskeletal ultrasound and injection procedures performed at the hospital named above, batched for all patients seen on the visit date. Injection fees include up to four ultrasound-guided or intra-articular sites; each additional site is billed separately. No tax applied.'}</footer>
 </body></html>`;
+}
+
+/* ---- Invoice as an EMAIL ------------------------------------
+   Not the same document. The printable invoice is a full HTML page
+   with a <head><style> block, a print button and a relative logo
+   path — mail clients strip all three, so sending it produces an
+   unstyled jumble. This emits table markup with inline styles only:
+   ugly to read in source, but it survives Outlook and Gmail intact.
+   ------------------------------------------------------------- */
+function schedBuildInvoiceEmailHTML(e, opts) {
+  const S = window.SCHED, B = window.SchedBill;
+  const acct = e.account || {};
+  const inv = e.invoice || {};
+  const remote = e.kind === 'remote';
+  const lines = B.lines(e);
+  const total = B.total(e), subtotal = B.subtotal(e);
+  const paidAmt = B.paid(inv, e), balance = B.balance(e);
+  const issued = inv.issued ? new Date(inv.issued) : new Date();
+  const due = B.due(e);
+  const termsDays = inv.termsDays || B.TERMS_DAYS;
+  const intro = (opts && opts.intro) || '';
+  const esc = (s) => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const fmtD = (dt) => dt.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
+
+  const SANS = "-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif";
+  const SERIF = "Georgia,'Times New Roman',serif";
+  const INK = '#1f231f', MUTE = '#8a8578', RULE = '#e5e2d9', CREAM = '#f7f5ef';
+
+  const td = `padding:9px 0;border-bottom:1px solid ${RULE};font-family:${SANS};font-size:13px;vertical-align:top`;
+  const amt = `${td};text-align:right;white-space:nowrap`;
+  const sub = `font-size:11.5px;color:${MUTE};line-height:1.5;margin-top:2px`;
+
+  const row = (who, svc, detail, money, muted) => `
+    <tr>
+      <td style="${td};width:34%;color:${muted ? MUTE : INK}">${who ? `<strong>${esc(who)}</strong>` : ''}</td>
+      <td style="${td};color:${muted ? MUTE : INK}">${esc(svc)}${detail ? `<div style="${sub}">${esc(detail)}</div>` : ''}</td>
+      <td style="${amt};color:${muted ? MUTE : INK}">${money}</td>
+    </tr>`;
+
+  let body = '';
+  lines.forEach((l, i) => {
+    const firstForWho = i === 0 || lines[i - 1].who !== l.who;
+    body += row(firstForWho ? l.who : '', l.label + (l.qty > 1 ? ' × ' + l.qty : ''), l.detail, S.money(l.amount));
+  });
+  if (!remote) (e.patients || []).filter(p => p.cancelled).forEach(p => {
+    body += row(p.name, 'Cancelled — not billed', '', '—', true);
+  });
+  ((inv.charges) || []).forEach(c => {
+    const sign = B.chargeSign(c);
+    body += row(sign < 0 ? 'Credit' : 'Charge', B.chargeLabel(c), B.chargeDetail(c), (sign < 0 ? '−' : '') + S.money(c.amount));
+  });
+  ((inv.payments) || []).forEach(p => {
+    body += row('', 'Payment received — ' + B.method(p.method).label + (p.ref ? ' · ' + p.ref : ''),
+      new Date(p.date + 'T12:00').toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' }),
+      '−' + S.money(p.amount), true);
+  });
+  if (!body) body = `<tr><td colspan="3" style="${td};color:${MUTE}">No line items.</td></tr>`;
+
+  const tline = (label, value, strong) => `
+    <tr>
+      <td style="font-family:${SANS};font-size:${strong ? '13px' : '12.5px'};padding:4px 14px 4px 0;color:${strong ? INK : MUTE};text-align:right">${esc(label)}</td>
+      <td style="font-family:${SANS};font-size:${strong ? '13px' : '12.5px'};padding:4px 0;color:${INK};text-align:right;white-space:nowrap;font-weight:${strong ? 600 : 400}">${value}</td>
+    </tr>`;
+
+  const stamp = inv.writtenOff ? 'Written off' : balance <= 0 && total > 0 ? 'Paid' : paidAmt > 0 ? 'Part paid' : 'Unpaid';
+  const stampColor = stamp === 'Paid' ? '#6B7C5C' : stamp === 'Written off' ? MUTE : '#8c5a3c';
+
+  const refLine = remote
+    ? `Remote reads for <strong>${esc(S.MONTHS[e.period.m])} ${e.period.y}</strong> · ${esc(B.count(e))} finalized and delivered`
+    : `Clinic day: <strong>${esc(schedFmtLong(new Date(e.date)))}, ${new Date(e.date).getFullYear()}</strong> · ${esc(B.count(e))} seen in person`;
+
+  const introHtml = intro
+    ? String(intro).replace(/\r\n?/g, '\n').split(/\n\s*\n+/)
+        .map(p => `<p style="font-family:${SANS};font-size:14.5px;line-height:1.65;color:${INK};margin:0 0 14px">${esc(p).replace(/\n/g, '<br>')}</p>`).join('')
+    : '';
+
+  return `<div style="background:${CREAM};padding:24px 12px">
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="max-width:640px;margin:0 auto;background:#ffffff;border:1px solid ${RULE}">
+<tr><td style="padding:30px 32px 0">
+
+  ${introHtml}
+
+  <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+    <tr>
+      <td style="vertical-align:top">
+        <div style="font-family:${SERIF};font-size:19px;color:${INK}">Dr. Debra Canapp</div>
+        <div style="font-family:${SANS};font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:${MUTE};margin-top:4px">${remote ? 'Remote MSK Ultrasound Reads' : 'In-Person MSK Ultrasound'}</div>
+        <div style="font-family:${SANS};font-size:12px;color:${MUTE};margin-top:6px">info@DrDebraCanapp.com</div>
+      </td>
+      <td style="vertical-align:top;text-align:right">
+        <div style="font-family:${SERIF};font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:${MUTE}">${remote ? 'Statement' : 'Invoice'}</div>
+        <div style="font-family:${SANS};font-size:16px;color:${INK};margin-top:5px">${esc(inv.number || '')}</div>
+        <div style="font-family:${SANS};font-size:12px;color:${MUTE};margin-top:4px">${fmtD(issued)}</div>
+      </td>
+    </tr>
+  </table>
+
+  <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin-top:26px;border-top:1px solid ${RULE};border-bottom:1px solid ${RULE}">
+    <tr>
+      <td style="padding:16px 16px 16px 0;vertical-align:top;width:52%">
+        <div style="font-family:${SANS};font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:${MUTE};margin-bottom:6px">Billed to</div>
+        <div style="font-family:${SANS};font-size:13px;line-height:1.6;color:${INK}"><strong>${esc(acct.billTo || acct.name || 'Account')}</strong>${acct.attn ? '<br>' + esc(acct.attn) : ''}${acct.address ? '<br>' + esc(acct.address) : ''}${acct.email ? '<br>' + esc(acct.email) : ''}</div>
+      </td>
+      <td style="padding:16px 0;vertical-align:top">
+        <div style="font-family:${SANS};font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:${MUTE};margin-bottom:6px">From</div>
+        <div style="font-family:${SANS};font-size:13px;line-height:1.6;color:${INK}">Dr. Debra Canapp, DVM, DACVSMR<br>info@DrDebraCanapp.com</div>
+      </td>
+    </tr>
+  </table>
+
+  <div style="font-family:${SANS};font-size:12.5px;color:${MUTE};padding:14px 0 6px">${refLine}</div>
+
+  <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+    <tr>
+      <td style="font-family:${SANS};font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:${MUTE};padding:0 0 7px;border-bottom:1px solid ${INK}">Patient</td>
+      <td style="font-family:${SANS};font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:${MUTE};padding:0 0 7px;border-bottom:1px solid ${INK}">Service</td>
+      <td style="font-family:${SANS};font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:${MUTE};padding:0 0 7px;border-bottom:1px solid ${INK};text-align:right">Amount</td>
+    </tr>
+    ${body}
+  </table>
+
+  <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin-top:16px">
+    <tr>
+      <td style="vertical-align:bottom">
+        <span style="font-family:${SANS};font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:${stampColor};border:1px solid ${stampColor};padding:4px 10px">${stamp}</span>
+      </td>
+      <td style="text-align:right">
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="right">
+          ${(inv.charges || []).length || paidAmt > 0 ? tline('Services', S.money(subtotal)) : ''}
+          ${(inv.charges || []).length ? tline('Adjustments', S.money(total - subtotal)) : ''}
+          ${tline((remote ? 'Statement' : 'Invoice') + ' total', S.money(total), true)}
+          ${paidAmt > 0 ? tline('Paid to date', '−' + S.money(paidAmt)) : ''}
+        </table>
+      </td>
+    </tr>
+  </table>
+
+  <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin-top:14px;border-top:2px solid ${INK}">
+    <tr>
+      <td style="font-family:${SERIF};font-size:15px;color:${INK};padding-top:12px">${balance > 0 ? 'Balance due' : 'Balance'}</td>
+      <td style="font-family:${SERIF};font-size:22px;color:${INK};padding-top:12px;text-align:right;white-space:nowrap">${S.money(balance)}</td>
+    </tr>
+  </table>
+
+</td></tr>
+<tr><td style="padding:22px 32px 30px">
+  <div style="background:${CREAM};border:1px solid ${RULE};padding:16px 18px">
+    <div style="font-family:${SANS};font-size:13px;color:${INK};font-weight:600;margin-bottom:10px">Terms: Net ${termsDays}${due ? ' — payment due ' + fmtD(due) : ''}.</div>
+    <div style="font-family:${SANS};font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:${MUTE};margin-bottom:6px">How to pay</div>
+    <ol style="font-family:${SANS};font-size:13px;line-height:1.6;color:${INK};margin:0;padding-left:20px">
+      ${B.payLines(e).map(l => `<li style="margin-bottom:4px">${esc(l)}</li>`).join('')}
+    </ol>
+    ${B.hasStat(e) ? `<div style="font-family:${SANS};font-size:12px;line-height:1.55;color:${MUTE};margin-top:12px"><strong style="color:${INK}">STAT reads.</strong> ${esc(B.STAT_DISCLAIMER)}</div>` : ''}
+  </div>
+  <p style="font-family:${SANS};font-size:12.5px;line-height:1.6;color:${MUTE};margin:16px 0 0">
+    Questions about this ${remote ? 'statement' : 'invoice'}? Reply to this email — it reaches the practice directly.
+  </p>
+  <p style="font-family:${SANS};font-size:11px;line-height:1.6;color:${MUTE};border-top:1px solid ${RULE};padding-top:14px;margin:16px 0 0">${remote
+    ? 'This statement covers diagnostic musculoskeletal ultrasound studies submitted by the practice named above and read remotely by Dr. Canapp during the period shown. Each read covers one bilateral anatomical region unless otherwise noted. No tax applied.'
+    : 'This invoice covers in-person diagnostic musculoskeletal ultrasound and injection procedures performed at the hospital named above, batched for all patients seen on the visit date. Injection fees include up to four ultrasound-guided or intra-articular sites; each additional site is billed separately. No tax applied.'}</p>
+</td></tr>
+</table>
+</div>`;
 }
 
 /* ---- Payment receipt — either kind --------------------------- */

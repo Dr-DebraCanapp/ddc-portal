@@ -148,7 +148,19 @@ function InviteVetModal({ invite, onClose, onSent, flash }) {
 
         <div className="rv-modal-actions">
           <button className="btn btn-ghost" onClick={onClose}>{sent ? 'Done' : 'Cancel'}</button>
-          <button className="btn btn-clay" disabled={!valid} onClick={send}>Open email invitation</button>
+          {window.SendMailButton ? (
+            <window.SendMailButton
+              to={f.email.trim()}
+              subject="Invitation — remote MSK ultrasound reads with Dr. Debra Canapp"
+              body={body}
+              kind="vet_invite"
+              label="Send the invitation"
+              disabled={!valid}
+              onSent={(how) => { record(); setSent(true); flash && flash(how === 'sent' ? 'Invitation sent. It appears under Invitations until they apply.' : 'Invitation drafted. It appears under Invitations until they apply.'); }}
+            />
+          ) : (
+            <button className="btn btn-clay" disabled={!valid} onClick={send}>Open email invitation</button>
+          )}
         </div>
         <p className="rv-inv-foot" style={{ marginTop: 10 }}>
           Prefer to send it yourself? Copy the link and use any channel — the form behaves the same.

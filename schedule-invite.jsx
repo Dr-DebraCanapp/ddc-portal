@@ -85,7 +85,19 @@ function InviteHospitalModal({ onClose, flash }) {
 
         <div className="sc-modal-actions">
           <button className="btn btn-ghost" onClick={onClose}>{sent ? 'Done' : 'Cancel'}</button>
-          <button className="btn btn-clay" disabled={!valid} onClick={send}>Open email invitation</button>
+          {window.SendMailButton ? (
+            <window.SendMailButton
+              to={f.email.trim()}
+              subject="Invitation — host an in-person MSK ultrasound clinic with Dr. Debra Canapp"
+              body={body}
+              kind="hospital_invite"
+              label="Send the invitation"
+              disabled={!valid}
+              onSent={(how) => { setSent(true); flash && flash(how === 'sent' ? 'Invitation sent. Their request appears under Visit requests once they submit the form.' : 'Invitation drafted. Their request appears under Visit requests once they submit the form.'); }}
+            />
+          ) : (
+            <button className="btn btn-clay" disabled={!valid} onClick={send}>Open email invitation</button>
+          )}
         </div>
         <p className="rv-inv-foot" style={{ marginTop: 10 }}>
           If you'd rather not email from here, copy the link above and send it however you like — the form works the same either way.

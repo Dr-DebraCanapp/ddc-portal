@@ -267,9 +267,20 @@ function ApproveModal({ app, onClose, onConfirm }) {
           <details className="sd-preview rv-inv-preview"><summary>What the welcome email says</summary><pre>{welcome}</pre></details>
           <div className="rv-modal-actions">
             <button className="btn btn-ghost" onClick={onClose}>Done</button>
-            <button className="btn btn-clay" onClick={emailWelcome}>{emailed ? 'Open email again' : 'Email their sign-in →'}</button>
+            {window.SendMailButton ? (
+              <window.SendMailButton
+                to={app.email}
+                subject="Your Dr. Debra Canapp referral portal sign-in"
+                body={welcome}
+                kind="welcome"
+                label="Email their sign-in"
+                onSent={() => setEmailed(true)}
+              />
+            ) : (
+              <button className="btn btn-clay" onClick={emailWelcome}>{emailed ? 'Open email again' : 'Email their sign-in →'}</button>
+            )}
           </div>
-          {emailed && <p className="rv-inv-foot">Draft opened. The temporary password is in the message — send it and they can sign in straight away.</p>}
+          <p className="rv-inv-foot">The temporary password is in the message. Ask them to change it after their first sign-in — there is a “Forgot your password?” link on the sign-in page.</p>
         </div>
       </div>
     );
