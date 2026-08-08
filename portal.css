@@ -1413,3 +1413,83 @@
 .vc-panel, .pw-card { color: var(--ink); }
 .vc-panel .rv-drawer-close { color: var(--ink-3); }
 .vc-panel .rv-drawer-close:hover { color: var(--ink); }
+
+
+/* ============================================================
+   CINE BAR — multi-frame DICOM playback
+   ============================================================ */
+.cine-bar {
+  position: absolute;
+  left: 50%;
+  bottom: 18px;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px;
+  background: rgba(10, 12, 12, 0.88);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(6px);
+  color: #e8e8e6;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  max-width: calc(100% - 32px);
+  z-index: 6;
+}
+.cine-btn {
+  min-width: 32px;
+  height: 32px;
+  padding: 0 8px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: #e8e8e6;
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.cine-btn:hover { background: rgba(255, 255, 255, 0.14); }
+.cine-play { min-width: 40px; background: rgba(177, 106, 72, 0.85); border-color: rgba(177, 106, 72, 0.9); }
+.cine-play:hover { background: rgba(177, 106, 72, 1); }
+.cine-scrub {
+  flex: 1 1 220px;
+  min-width: 120px;
+  accent-color: #b16a48;
+  cursor: pointer;
+}
+.cine-count {
+  font-variant-numeric: tabular-nums;
+  min-width: 62px;
+  text-align: center;
+  color: #b9c0ba;
+}
+.cine-fps select {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: #e8e8e6;
+  font-size: 12px;
+  padding: 5px 6px;
+  cursor: pointer;
+}
+.cine-prefetch {
+  position: relative;
+  width: 58px;
+  height: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.cine-prefetch-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: rgba(177, 106, 72, 0.45);
+  transition: width 0.2s linear;
+}
+.cine-prefetch span {
+  position: relative;
+  font-size: 10px;
+  color: #cfd4cf;
+  font-variant-numeric: tabular-nums;
+}

@@ -1,7 +1,7 @@
 /* global React, cornerstone, cornerstoneTools, cornerstoneWADOImageLoader, cornerstoneWebImageLoader */
 /* Portal DICOM viewer with integrated measurement + annotation tools */
 
-const { useState: vUseState, useEffect: vUseEffect, useRef: vUseRef } = React;
+const { useState: vUseState, useEffect: vUseEffect, useRef: vUseRef, useMemo: vUseMemo } = React;
 
 /* ============================================================
    CUSTOM CALIBRATION (mm/px) — for non-DICOM images
@@ -167,6 +167,45 @@ function lengthFromHandles(d, col, row) {
 }
 
 /* ============================================================
+   CINE BAR — playback controls for multi-frame DICOM loops
+   ============================================================ */
+const CINE_SPEEDS = [7, 15, 24, 30, 60];
+function CineBar({ frameIdx, frameCount, playing, setPlaying, fps, setFps, onScrub, onStep, prefetch }) {
+  const pct = prefetch ? Math.round((prefetch.loaded / prefetch.total) * 100) : 100;
+  return (
+    <div className="cine-bar">
+      <button className="cine-btn cine-play" onClick={() => setPlaying(!playing)}
+              title={playing ? 'Pause (space)' : 'Play (space)'}>
+        {playing ? '❚❚' : '▶'}
+      </button>
+      <button className="cine-btn" onClick={() => onStep(-1)} title="Previous frame (←)">‹</button>
+      <button className="cine-btn" onClick={() => onStep(1)} title="Next frame (→)">›</button>
+      <input
+        className="cine-scrub"
+        type="range"
+        min="0"
+        max={frameCount - 1}
+        value={frameIdx}
+        onChange={(e) => onScrub(parseInt(e.target.value, 10))}
+        aria-label="Cine frame"
+      />
+      <div className="cine-count">{frameIdx + 1} / {frameCount}</div>
+      <label className="cine-fps">
+        <select value={fps} onChange={(e) => setFps(parseInt(e.target.value, 10))} aria-label="Playback speed">
+          {CINE_SPEEDS.map(s => <option key={s} value={s}>{s} fps</option>)}
+        </select>
+      </label>
+      {prefetch && (
+        <div className="cine-prefetch" title="Decoding the rest of the clip">
+          <div className="cine-prefetch-fill" style={{width: pct + '%'}} />
+          <span>{pct}%</span>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ============================================================
    VIEWER COMPONENT
    ============================================================ */
 /* Single-letter tool shortcuts. Deliberately avoids the arrow keys, which
@@ -191,6 +230,15 @@ function DicomViewer({ caseId, files, initialFileIndex = 0, onClose }) {
   const [dicomHeader, setDicomHeader] = vUseState(null);
   const [showHeader, setShowHeader] = vUseState(false);
   const [hasEmbedded, setHasEmbedded] = vUseState(false);
+  /* --- Cine loop (multi-frame DICOM) --- */
+  const [frameCount, setFrameCount] = vUseState(1);
+  const [frameIdx, setFrameIdx] = vUseState(0);
+  const [playing, setPlaying] = vUseState(false);
+  const [fps, setFps] = vUseState(30);
+  const [prefetch, setPrefetch] = vUseState(null); // { loaded, total }
+  const [videoError, setVideoError] = vUseState(false);
+  const framesRef = vUseRef(null);   // array of per-frame imageIds
+  const frameSeqRef = vUseRef(0);    // guards out-of-order frame renders
   const elementRef = vUseRef(null);
   const videoRef = vUseRef(null);
   const annotationDebounce = vUseRef(null);
@@ -202,6 +250,16 @@ function DicomViewer({ caseId, files, initialFileIndex = 0, onClose }) {
   const isImage = fileIsViewable(file);
   const isVideo = fileIsVideo(file);
   const isPdf = fileIsPdf(file);
+  const isCine = frameCount > 1;
+  // One object URL per file, not one per render.
+  const blobUrl = vUseMemo(
+    () => (file && file.blob && (isVideo || isPdf) ? URL.createObjectURL(file.blob) : null),
+    [file && file.id, isVideo, isPdf]
+  );
+  vUseEffect(() => {
+    setVideoError(false);
+    return () => { if (blobUrl) URL.revokeObjectURL(blobUrl); };
+  }, [blobUrl]);
 
   /* --- Rebuild measurements list from cornerstone tool state --- */
   const rebuildMeasurements = () => {
@@ -287,32 +345,62 @@ function DicomViewer({ caseId, files, initialFileIndex = 0, onClose }) {
 
     setLoadError(null);
     setLoading(true);
+    setPlaying(false);
+    setFrameIdx(0);
+    setFrameCount(1);
+    setPrefetch(null);
+    framesRef.current = null;
 
     let cancelled = false;
-    let loadPromise;
-    try {
-      loadPromise = cornerstone.loadAndCacheImage(imageId);
-    } catch (e) {
-      // Synchronous throw (e.g. no registered loader for the scheme) must NOT
-      // bubble out of the effect — that would unmount React into a blank page.
-      setLoading(false);
-      const msg = (e && (e.message || e.error)) || 'No image loader available for this file type.';
-      console.error('[viewer] synchronous load error', file && file.name, e);
-      setLoadError(msg);
-      setImageInfo({ error: msg });
-      return;
-    }
-    loadPromise.then(async (image) => {
-      if (cancelled) return;
-      setLoading(false);
-      cornerstone.displayImage(el, image);
 
-      /* ---- Read embedded DICOM calibration + header from the raw file ---- */
+    (async () => {
+      /* ---- Parse the raw DICOM FIRST ----------------------------------
+         A cine loop is one DICOM file containing N frames. We need
+         NumberOfFrames before loading, because each frame is a separate
+         cornerstone image ( "...?frame=N" ). Previously we loaded the bare
+         image ID, which always resolves to frame 0 — so every clip opened
+         as a single still and there was nothing to play. */
       let dataSet = null;
       if (window.PortalDicomMeta && file && file.blob && !(file.type || '').startsWith('image/')) {
         dataSet = await window.PortalDicomMeta.parseDataSetFromBlob(file.blob);
       }
       if (cancelled) return;
+
+      const frameInfo = (dataSet && window.PortalDicomMeta.readFrameInfo)
+        ? window.PortalDicomMeta.readFrameInfo(dataSet)
+        : null;
+      const nFrames = (frameInfo && frameInfo.numberOfFrames) || 1;
+      const ids = nFrames > 1
+        ? Array.from({ length: nFrames }, (_, i) => `${imageId}?frame=${i}`)
+        : [imageId];
+      framesRef.current = ids;
+      setFrameCount(nFrames);
+      if (frameInfo && frameInfo.fps) {
+        setFps(Math.min(60, Math.max(1, Math.round(frameInfo.fps))));
+      }
+
+      let image;
+      try {
+        image = await cornerstone.loadAndCacheImage(ids[0]);
+      } catch (err) {
+        if (cancelled) return;
+        setLoading(false);
+        const msg = (err && (err.message || err.error || (typeof err === 'string' ? err : ''))) || 'Could not load image.';
+        console.error('[viewer] failed to load image', file && file.name, err);
+        setLoadError(msg);
+        setImageInfo({ error: msg });
+        return;
+      }
+      if (cancelled) return;
+      setLoading(false);
+      cornerstone.displayImage(el, image);
+
+      /* Register the frame list as a cornerstone stack so the scroll wheel
+         steps through frames as well as the cine bar. */
+      try {
+        cornerstoneTools.addStackStateManager(el, ['stack']);
+        cornerstoneTools.addToolState(el, 'stack', { currentImageIdIndex: 0, imageIds: ids });
+      } catch (e) {}
 
       const header = dataSet ? window.PortalDicomMeta.readDicomHeader(dataSet) : null;
       const embedded = window.PortalDicomMeta
@@ -359,6 +447,8 @@ function DicomViewer({ caseId, files, initialFileIndex = 0, onClose }) {
         spacing: colSp,
         spacingRow: rowSp,
         source,
+        frames: nFrames,
+        fps: frameInfo && frameInfo.fps,
         bitsAllocated: image.color ? null : (image.bitsAllocated || 8),
         isDicom: !!dataSet,
       });
@@ -398,7 +488,24 @@ function DicomViewer({ caseId, files, initialFileIndex = 0, onClose }) {
       }
 
       setTimeout(rebuildMeasurements, 250);
-    }).catch(err => {
+
+      /* ---- Decode the rest of the clip in the background ----------------
+         Playback off an undecoded clip stutters badly, so we warm the
+         cache frame by frame and show progress. Playback is allowed before
+         it finishes; it just gets smoother as it fills. */
+      if (ids.length > 1) {
+        setPrefetch({ loaded: 1, total: ids.length });
+        (async () => {
+          for (let i = 1; i < ids.length; i++) {
+            if (cancelled) return;
+            try { await cornerstone.loadAndCacheImage(ids[i]); } catch (e) { /* skip bad frame */ }
+            if (cancelled) return;
+            setPrefetch({ loaded: i + 1, total: ids.length });
+          }
+          if (!cancelled) setPrefetch(null);
+        })();
+      }
+    })().catch(err => {
       if (cancelled) return;
       setLoading(false);
       const msg = (err && (err.message || err.error || (typeof err === 'string' ? err : ''))) || 'Could not load image.';
@@ -406,6 +513,24 @@ function DicomViewer({ caseId, files, initialFileIndex = 0, onClose }) {
       setLoadError(msg);
       setImageInfo({ error: msg });
     });
+
+    /* Every frame arrives as a fresh cornerstone image object, so the
+       calibration has to be stamped onto each one or measurements silently
+       revert to the file's raw spacing mid-clip. */
+    const onNewImage = (e) => {
+      const img = e && e.detail && e.detail.image;
+      const pair = spacingPairRef.current;
+      if (img && pair) {
+        img.columnPixelSpacing = pair.col;
+        img.rowPixelSpacing = pair.row;
+      }
+      const list = framesRef.current;
+      if (img && list && list.length > 1) {
+        const i = list.indexOf(img.imageId);
+        if (i >= 0) setFrameIdx(i);
+      }
+    };
+    el.addEventListener('cornerstonenewimage', onNewImage);
 
     const onMeasurement = () => {
       setAnnotationSaved(false);
@@ -427,6 +552,7 @@ function DicomViewer({ caseId, files, initialFileIndex = 0, onClose }) {
 
     return () => {
       cancelled = true;
+      el.removeEventListener('cornerstonenewimage', onNewImage);
       el.removeEventListener('cornerstonetoolsmeasurementadded', onMeasurement);
       el.removeEventListener('cornerstonetoolsmeasurementmodified', onMeasurement);
       el.removeEventListener('cornerstonetoolsmeasurementremoved', onMeasurement);
@@ -434,6 +560,48 @@ function DicomViewer({ caseId, files, initialFileIndex = 0, onClose }) {
       try { cornerstone.disable(el); } catch (e) {}
     };
   }, [idx, file && file.id, isImage]);
+
+  /* --- Cine loop playback ------------------------------------------------
+     Show one frame. displayImage keeps the current viewport, so zoom, pan
+     and window/level hold steady while the clip runs. */
+  const showFrame = async (i) => {
+    const el = elementRef.current;
+    const ids = framesRef.current;
+    if (!el || !ids || !ids[i]) return;
+    const seq = ++frameSeqRef.current;
+    try {
+      const img = await cornerstone.loadAndCacheImage(ids[i]);
+      if (seq !== frameSeqRef.current || !elementRef.current) return; // superseded
+      const pair = spacingPairRef.current;
+      if (pair) { img.columnPixelSpacing = pair.col; img.rowPixelSpacing = pair.row; }
+      cornerstone.displayImage(el, img);
+      const stack = cornerstoneTools.getToolState(el, 'stack');
+      if (stack && stack.data && stack.data[0]) stack.data[0].currentImageIdIndex = i;
+    } catch (e) { /* a single undecodable frame shouldn't stop the clip */ }
+  };
+
+  vUseEffect(() => {
+    if (!isCine) return;
+    showFrame(frameIdx);
+  }, [frameIdx, isCine]);
+
+  vUseEffect(() => {
+    if (!playing || !isCine) return;
+    const iv = setInterval(() => {
+      setFrameIdx(i => (i + 1) % frameCount);
+    }, Math.max(16, Math.round(1000 / (fps || 30))));
+    return () => clearInterval(iv);
+  }, [playing, fps, frameCount, isCine]);
+
+  // Drawing a measurement while the clip runs is a lost cause — pause first.
+  vUseEffect(() => {
+    if (playing && tool !== 'Pan' && tool !== 'Zoom' && tool !== 'Wwwc') setPlaying(false);
+  }, [tool]);
+
+  const stepFrame = (n) => {
+    setPlaying(false);
+    setFrameIdx(i => Math.min(frameCount - 1, Math.max(0, i + n)));
+  };
 
   /* --- Switch active tool --- */
   vUseEffect(() => {
@@ -456,6 +624,16 @@ function DicomViewer({ caseId, files, initialFileIndex = 0, onClose }) {
         e.preventDefault();
         setIdx(i => Math.min(files.length - 1, Math.max(0, i + n)));
       };
+      // On a cine loop, ← / → scrub frames (what a sonographer expects);
+      // ↑ / ↓ still move between files.
+      if (isCine && (e.key === 'ArrowRight' || e.key === 'ArrowLeft')) {
+        e.preventDefault();
+        return stepFrame(e.key === 'ArrowRight' ? 1 : -1);
+      }
+      if (isCine && e.key === ' ') {
+        e.preventDefault();
+        return setPlaying(p => !p);
+      }
       switch (e.key) {
         case 'ArrowRight': case 'ArrowDown': case 'PageDown': return step(1);
         case 'ArrowLeft': case 'ArrowUp': case 'PageUp': return step(-1);
@@ -473,7 +651,7 @@ function DicomViewer({ caseId, files, initialFileIndex = 0, onClose }) {
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [files.length]);
+  }, [files.length, isCine, frameCount]);
 
   /* --- Actions --- */
   const nudgeViewport = (fn) => {
@@ -600,6 +778,7 @@ function DicomViewer({ caseId, files, initialFileIndex = 0, onClose }) {
             {idx + 1} of {files.length}
             {files.length > 1 ? ' · ← → to step' : ''}
             {imageInfo && imageInfo.width ? ` · ${imageInfo.width} × ${imageInfo.height}px` : ''}
+            {isCine ? ` · cine loop, ${frameCount} frames` : ''}
             {imageInfo && imageInfo.spacing ?
               ` · ${imageInfo.spacing.toFixed(4)} mm/px · calibrated from ${(window.PortalDicomMeta && window.PortalDicomMeta.CAL_SOURCE_LABEL[imageInfo.source]) || 'file'}`
               : ' · uncalibrated'}
@@ -658,12 +837,28 @@ function DicomViewer({ caseId, files, initialFileIndex = 0, onClose }) {
               </div>
             </div>
           )}
-          {isVideo && (
-            <video ref={videoRef} src={URL.createObjectURL(file.blob)} controls playsInline
+          {isVideo && !videoError && (
+            <video ref={videoRef} src={blobUrl} controls playsInline
+                   onError={() => setVideoError(true)}
                    style={{maxWidth:'100%', maxHeight:'100%', background:'#000'}} />
           )}
+          {isVideo && videoError && (
+            <div className="viewer-unsupported">
+              <div className="serif" style={{fontSize:24}}>This clip won’t play in the browser</div>
+              <div style={{marginTop:8, fontSize:14, color:'#9aa39d', maxWidth:460}}>
+                The browser can’t decode this video format — AVI and some MOV files are
+                common causes. Download it to play locally, or ask the clinic to re-export
+                the loop as DICOM or MP4.
+              </div>
+              <div style={{marginTop:6, fontSize:13, color:'#7d857f'}}>{file.name}</div>
+              <button className="btn btn-clay" style={{marginTop:24}}
+                      onClick={() => window.PortalDB.downloadBlob(file.blob, file.name)}>
+                Download file <span className="arrow">↓</span>
+              </button>
+            </div>
+          )}
           {isPdf && (
-            <iframe src={URL.createObjectURL(file.blob)}
+            <iframe src={blobUrl}
                     style={{width:'100%', height:'100%', border:'none', background:'#fff'}}
                     title={file.name} />
           )}
@@ -684,6 +879,19 @@ function DicomViewer({ caseId, files, initialFileIndex = 0, onClose }) {
           )}
 
           {isImage && annotationSaved && <div className="ann-saved">✓ Saved</div>}
+          {isImage && isCine && !loadError && (
+            <CineBar
+              frameIdx={frameIdx}
+              frameCount={frameCount}
+              playing={playing}
+              setPlaying={setPlaying}
+              fps={fps}
+              setFps={setFps}
+              prefetch={prefetch}
+              onScrub={(i) => { setPlaying(false); setFrameIdx(i); }}
+              onStep={stepFrame}
+            />
+          )}
           {calibrating && (
             <CalibrationPrompt onApply={applyCalibration} onCancel={() => setCalibrating(false)} />
           )}

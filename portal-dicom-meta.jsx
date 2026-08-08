@@ -59,19 +59,54 @@ function readUltrasoundRegions(ds) {
   return regions;
 }
 
-/* Choose the spatial (2-D, cm-calibrated) region — prefer the largest */
+/* Choose the spatial (2-D, cm-calibrated) region.
+
+   Three things bit us here and are deliberately handled:
+
+   1. Some scanners write PhysicalDeltaY as a NEGATIVE number (the y axis
+      points up in their coordinate system). The old filter required > 0, so
+      those regions were rejected and we silently fell back to PixelSpacing
+      (0028,0030) — which on ultrasound is the *display* pixel size, not the
+      tissue scale. That is what made measurements disagree with the machine.
+   2. Some write PhysicalUnits as 0 ('none') on a perfectly good 2-D tissue
+      region. We now accept that when the region is 2-D tissue and the delta
+      is a plausible tissue scale.
+   3. Region bounds are sometimes absent, making every region score 0 area.
+      We now rank on region type first and only use area as a tie-break. */
+const MAX_PLAUSIBLE_CM_PER_PX = 0.2; // 2 mm/px — coarser than any real US image
+
+function _regionScale(r) {
+  const dx = Math.abs(r.deltaX);
+  const dy = Math.abs(r.deltaY);
+  if (!(dx > 0) || !(dy > 0)) return null;
+  if (dx > MAX_PLAUSIBLE_CM_PER_PX || dy > MAX_PLAUSIBLE_CM_PER_PX) return null;
+  return { dx, dy };
+}
+function _regionIsSpatial(r) {
+  if (!_regionScale(r)) return false;
+  // cm on both axes is the unambiguous case
+  if (r.unitsX === 3 && r.unitsY === 3) return true;
+  // units unstated, but a 2-D tissue region with a plausible scale
+  const unitsUnset = (u) => u === 0 || u === null || u === undefined || u === 10;
+  if (unitsUnset(r.unitsX) && unitsUnset(r.unitsY)) {
+    return r.spatialFormat === 1 || r.dataType === 1 || r.spatialFormat === null;
+  }
+  return false;
+}
 function pickSpatialRegion(regions) {
-  const cand = regions.filter(r =>
-    r.unitsX === 3 && r.unitsY === 3 &&
-    typeof r.deltaX === 'number' && r.deltaX > 0 &&
-    typeof r.deltaY === 'number' && r.deltaY > 0
-  );
+  const cand = regions.filter(_regionIsSpatial);
   if (!cand.length) return null;
-  cand.sort((a, b) => {
-    const aa = ((a.maxX1 || 0) - (a.minX0 || 0)) * ((a.maxY1 || 0) - (a.minY0 || 0));
-    const bb = ((b.maxX1 || 0) - (b.minX0 || 0)) * ((b.maxY1 || 0) - (b.minY0 || 0));
-    return bb - aa;
-  });
+  const rank = (r) => {
+    let s = 0;
+    if (r.unitsX === 3 && r.unitsY === 3) s += 4;   // explicitly cm
+    if (r.spatialFormat === 1) s += 2;              // 2-D
+    if (r.dataType === 1) s += 1;                   // tissue
+    return s;
+  };
+  const area = (r) =>
+    Math.max(0, (r.maxX1 || 0) - (r.minX0 || 0)) *
+    Math.max(0, (r.maxY1 || 0) - (r.minY0 || 0));
+  cand.sort((a, b) => (rank(b) - rank(a)) || (area(b) - area(a)));
   return cand[0];
 }
 
@@ -96,9 +131,10 @@ function extractEmbeddedCalibration(ds, image) {
     const regions = readUltrasoundRegions(ds);
     const r = pickSpatialRegion(regions);
     if (r) {
+      const sc = _regionScale(r);
       return {
-        colMmPerPx: r.deltaX * 10,
-        rowMmPerPx: r.deltaY * 10,
+        colMmPerPx: sc.dx * 10,
+        rowMmPerPx: sc.dy * 10,
         source: 'us-region',
         region: r,
         regions,
@@ -120,6 +156,37 @@ function extractEmbeddedCalibration(ds, image) {
   return null;
 }
 
+/* ------------------------------------------------------------
+   readFrameInfo(dataSet)
+   Multi-frame (cine loop) descriptor. A DICOM cine is a single file
+   holding N frames; without this the viewer only ever showed frame 0,
+   which is why clips looked like stills.
+   ------------------------------------------------------------ */
+function readFrameInfo(ds) {
+  if (!ds) return null;
+  let n = parseInt(_str(ds, 'x00280008'), 10);   // NumberOfFrames (IS)
+  if (!n || isNaN(n) || n < 1) n = 1;
+
+  // Frame rate: FrameTime (ms) or CineRate (fps), either may be absent.
+  let fps = null;
+  const frameTime = parseFloat(_str(ds, 'x00181063'));   // FrameTime, ms
+  if (frameTime && frameTime > 0) fps = 1000 / frameTime;
+  if (!fps) {
+    const cineRate = parseFloat(_str(ds, 'x00180040')); // CineRate, fps
+    if (cineRate && cineRate > 0) fps = cineRate;
+  }
+  if (!fps) {
+    const rr = parseFloat(_str(ds, 'x00181062')); // RecommendedDisplayFrameRate
+    if (rr && rr > 0) fps = rr;
+  }
+  return {
+    numberOfFrames: n,
+    isCine: n > 1,
+    fps: fps ? Math.round(fps * 10) / 10 : null,
+    frameTimeMs: frameTime || null,
+  };
+}
+
 /* General header for the info readout */
 function readDicomHeader(ds) {
   if (!ds) return null;
@@ -132,6 +199,7 @@ function readDicomHeader(ds) {
     studyDate: _str(ds, 'x00080020'),
     bodyPart: _str(ds, 'x00180015'),
     photometric: _str(ds, 'x00280004'),
+    frames: (function () { const f = readFrameInfo(ds); return f ? f.numberOfFrames : 1; })(),
     rows: _u16(ds, 'x00280010'),
     cols: _u16(ds, 'x00280011'),
     bits: _u16(ds, 'x00280100'),
@@ -150,6 +218,7 @@ window.PortalDicomMeta = {
   parseDataSetFromBlob,
   extractEmbeddedCalibration,
   readDicomHeader,
+  readFrameInfo,
   readUltrasoundRegions,
   US_UNITS,
   CAL_SOURCE_LABEL,
